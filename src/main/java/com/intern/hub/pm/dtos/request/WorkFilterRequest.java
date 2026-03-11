@@ -1,0 +1,19 @@
+package com.intern.hub.pm.dtos.request;
+
+import com.intern.hub.pm.enums.WorkItemType;
+import lombok.Data;
+
+import java.time.LocalDate;
+
+@Data
+public class WorkFilterRequest {
+
+    private String name;
+    private String assignee;
+    private String status;
+    private String statusNot;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private WorkItemType type; // PROJECT | MODULE | TASK
+    private Long parentId;
+}
