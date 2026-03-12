@@ -1,4 +1,4 @@
-package com.intern.hub.pm.controllers;
+package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dtos.request.*;
 import com.intern.hub.pm.dtos.response.*;
@@ -10,7 +10,9 @@ import com.intern.hub.starter.security.annotation.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +28,10 @@ import java.util.List;
 @RestController
 @RequestMapping("${api.prefix:/api/v1}")
 @AllArgsConstructor
-@SecurityRequirement(name = "bearerAuth")
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TaskController {
 
-    private final WorkItemService workItemService;
+    WorkItemService workItemService;
 
     private <T> PageResponse<T> toPageResponse(Page<T> page) {
         return new PageResponse<>(
@@ -41,7 +43,7 @@ public class TaskController {
         );
     }
 
-    @PostMapping(path ="/module/{moduleId}/task",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/module/{moduleId}/task", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Tạo task",
@@ -51,7 +53,7 @@ public class TaskController {
             @PathVariable Long moduleId,
             @RequestPart("task") TaskRequest taskJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
+    ) {
         String username = UserContext.requiredEmail();
         workItemService.createTask(moduleId, taskJson, username);
         if (files != null && !files.isEmpty()) {
@@ -71,7 +73,7 @@ public class TaskController {
             WorkFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    ){
+    ) {
         filter.setType(WorkItemType.TASK);
         filter.setParentId(moduleId);
         filter.setStatusNot(String.valueOf(StatusWork.DA_XOA));
@@ -89,7 +91,7 @@ public class TaskController {
     )
     public ResponseEntity<?> getTask(@PathVariable Long taskId) {
         try {
-            TaskDetailResponse response =  workItemService.taskDetail(taskId);
+            TaskDetailResponse response = workItemService.taskDetail(taskId);
             return ApiResponseBuilder.success("Chi tiết task", response);
         } catch (Exception e) {
             return ApiResponseBuilder.internalError(e.getMessage());
@@ -97,7 +99,7 @@ public class TaskController {
     }
 
     //edit
-    @PutMapping(path = "/task/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/task/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Sửa task",
@@ -107,14 +109,14 @@ public class TaskController {
             @PathVariable Long id,
             @RequestPart("task") EditTaskRequest taskJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
+    ) {
         workItemService.editTask(id, taskJson);
         List<MultipartFile> file2 = files;
         return ApiResponseBuilder.success("Sửa task thành công", null);
     }
 
     //nộp task
-    @PostMapping(path = "/task/{taskId}/submit",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/task/{taskId}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Nộp task",
@@ -124,8 +126,8 @@ public class TaskController {
             @PathVariable Long taskId,
             @RequestPart("result") SubmitTaskRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
-        workItemService.submit(taskId,request, WorkItemType.TASK);
+    ) {
+        workItemService.submit(taskId, request, WorkItemType.TASK);
         return ApiResponseBuilder.success("Nộp task thành công", null);
     }
 
@@ -139,12 +141,12 @@ public class TaskController {
     public ResponseEntity<?> refuse(
             @PathVariable Long taskId,
             @RequestBody NoteRequest request
-    ){
-        workItemService.refuse(taskId,request,WorkItemType.TASK);
+    ) {
+        workItemService.refuse(taskId, request, WorkItemType.TASK);
         return ApiResponseBuilder.success("Từ chối duyệt task thành công", null);
     }
 
-    @DeleteMapping(path ="/task/{id}")
+    @DeleteMapping(path = "/task/{id}")
     @Authenticated
     @Operation(
             summary = "Đóng task",
@@ -152,7 +154,7 @@ public class TaskController {
     )
     public ResponseEntity<?> delete(
             @PathVariable Long id
-    ){
+    ) {
         workItemService.deleteWork(id, WorkItemType.TASK);
         return ApiResponseBuilder.success("Xóa task thành công", null);
     }

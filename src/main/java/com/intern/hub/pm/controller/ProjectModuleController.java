@@ -1,4 +1,4 @@
-package com.intern.hub.pm.controllers;
+package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dtos.request.*;
 import com.intern.hub.pm.dtos.response.ApiResponseBuilder;
@@ -13,7 +13,9 @@ import com.intern.hub.starter.security.annotation.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,11 +31,11 @@ import java.util.List;
 @RestController
 @RequestMapping("${api.prefix:/api/v1}")
 @RequiredArgsConstructor
-@SecurityRequirement(name = "bearerAuth")
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectModuleController {
 
-    private final EntityMemberService entityMemberService;
-    private final WorkItemService workItemService;
+    EntityMemberService entityMemberService;
+    WorkItemService workItemService;
 
 
     private <T> PageResponse<T> toPageResponse(Page<T> page) {
@@ -46,7 +48,7 @@ public class ProjectModuleController {
         );
     }
 
-    @PostMapping(path ="/project/{projectId}/modules",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/project/{projectId}/modules", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Tạo project module",
@@ -56,7 +58,7 @@ public class ProjectModuleController {
             @PathVariable Long projectId,
             @RequestPart("project") WorkItemRequest projectJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
+    ) {
         String username = UserContext.requiredEmail();
 
         workItemService.createModule(projectId, projectJson, username);
@@ -77,7 +79,7 @@ public class ProjectModuleController {
             WorkFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    ){
+    ) {
         filter.setType(WorkItemType.MODULE);
         filter.setParentId(projectId);
         filter.setStatusNot(String.valueOf(StatusWork.DA_XOA));
@@ -97,7 +99,7 @@ public class ProjectModuleController {
             @PathVariable Long moduleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    ){
+    ) {
         Page<ProjectUserResponse> pageResult =
                 entityMemberService.projectUserList(moduleId, WorkItemType.MODULE, page, size);
 
@@ -123,7 +125,7 @@ public class ProjectModuleController {
     }
 
     //chinh sua module// sủa lại chỗ save cho 1 hàm thôi
-    @PutMapping(path ="/module/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/module/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Chỉnh sửa module",
@@ -133,8 +135,8 @@ public class ProjectModuleController {
             @PathVariable Long id,
             @RequestPart("project") WorkItemRequest projectJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
-        workItemService.editProject(id,projectJson);
+    ) {
+        workItemService.editProject(id, projectJson);
         if (files != null && !files.isEmpty()) {
             List<MultipartFile> file2 = files;
         }
@@ -142,7 +144,7 @@ public class ProjectModuleController {
     }
 
     //nộp module
-    @PostMapping(path = "/module/{moduleId}/submit",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/module/{moduleId}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Nộp module",
@@ -152,8 +154,8 @@ public class ProjectModuleController {
             @PathVariable Long moduleId,
             @RequestPart("result") SubmitTaskRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
-        workItemService.submit(moduleId,request,WorkItemType.MODULE);
+    ) {
+        workItemService.submit(moduleId, request, WorkItemType.MODULE);
         return ApiResponseBuilder.success("Nộp module thành công", null);
     }
 
@@ -167,12 +169,12 @@ public class ProjectModuleController {
     public ResponseEntity<?> refuse(
             @PathVariable Long moduleId,
             @RequestBody NoteRequest request
-    ){
-        workItemService.refuse(moduleId,request,WorkItemType.MODULE);
+    ) {
+        workItemService.refuse(moduleId, request, WorkItemType.MODULE);
         return ApiResponseBuilder.success("Từ chối duyệt module thành công", null);
     }
 
-    @DeleteMapping(path ="/module/{id}")
+    @DeleteMapping(path = "/module/{id}")
     @Authenticated
     @Operation(
             summary = "Đóng module",
@@ -180,7 +182,7 @@ public class ProjectModuleController {
     )
     public ResponseEntity<?> delete(
             @PathVariable Long id
-    ){
+    ) {
         workItemService.deleteWork(id, WorkItemType.MODULE);
         return ApiResponseBuilder.success("Xóa module án thành công", null);
     }

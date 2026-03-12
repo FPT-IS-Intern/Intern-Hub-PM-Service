@@ -1,4 +1,4 @@
-package com.intern.hub.pm.configs;
+package com.intern.hub.pm.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

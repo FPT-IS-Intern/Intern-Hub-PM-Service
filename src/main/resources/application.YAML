@@ -2,7 +2,7 @@ server:
   port: ${PORT:8080}
 
 api:
-  prefix: api/v1
+  prefix: /pm
 
 spring:
   datasource:

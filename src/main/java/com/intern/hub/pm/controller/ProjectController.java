@@ -1,4 +1,4 @@
-package com.intern.hub.pm.controllers;
+package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dtos.request.*;
 import com.intern.hub.pm.dtos.response.*;
@@ -11,7 +11,9 @@ import com.intern.hub.starter.security.annotation.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,11 +29,11 @@ import java.util.List;
 @RestController
 @RequestMapping("${api.prefix:/api/v1}")
 @RequiredArgsConstructor
-@SecurityRequirement(name = "bearerAuth")
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectController {
 
-    private final EntityMemberService entityMemberService;
-    private final WorkItemService workItemService;
+    EntityMemberService entityMemberService;
+    WorkItemService workItemService;
 
     private <T> PageResponse<T> toPageResponse(Page<T> page) {
         return new PageResponse<>(
@@ -52,8 +54,7 @@ public class ProjectController {
     public ResponseEntity<?> getProjects(
             WorkFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size)
-    {
+            @RequestParam(defaultValue = "10") int size) {
         filter.setType(WorkItemType.PROJECT);
         filter.setStatusNot(String.valueOf(StatusWork.DA_XOA));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
@@ -62,7 +63,7 @@ public class ProjectController {
                 toPageResponse(pageResult));
     }
 
-    @PostMapping(path = "/project",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/project", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Tạo dự án",
@@ -71,7 +72,7 @@ public class ProjectController {
     public ResponseEntity<?> create(
             @RequestPart("project") WorkItemRequest projectJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
+    ) {
         String username = UserContext.requiredEmail();
 
         workItemService.createProject(projectJson, username);
@@ -92,7 +93,7 @@ public class ProjectController {
             @PathVariable Long projectId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    ){
+    ) {
         Page<ProjectUserResponse> pageResult =
                 entityMemberService.projectUserList(projectId, WorkItemType.PROJECT, page, size);
         return ApiResponseBuilder.success(
@@ -108,7 +109,7 @@ public class ProjectController {
             summary = "Chi tiết dự án",
             description = "API dùng để xem chi tiết dự án (dự án, module)."
     )
-    public ResponseEntity<?> detailProject(@PathVariable Long id){
+    public ResponseEntity<?> detailProject(@PathVariable Long id) {
         WorkItemDetailResponse response = workItemService.workItemDetailResponse(id);
         return ApiResponseBuilder.success("Chi tiết dự án", response);
     }
@@ -158,7 +159,7 @@ public class ProjectController {
     }
 
     //chinh sua du an
-    @PutMapping(path = "/project/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/project/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Chỉnh sửa dự án",
@@ -168,8 +169,8 @@ public class ProjectController {
             @PathVariable Long id,
             @RequestPart("project") WorkItemRequest projectJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ){
-        workItemService.editProject(id,projectJson);
+    ) {
+        workItemService.editProject(id, projectJson);
         if (files != null && !files.isEmpty()) {
             List<MultipartFile> file2 = files;
         }
@@ -177,7 +178,7 @@ public class ProjectController {
     }
 
     // delete
-    @DeleteMapping(path ="/project/{id}")
+    @DeleteMapping(path = "/project/{id}")
     @Authenticated
     @Operation(
             summary = "Đóng dự án",
@@ -185,7 +186,7 @@ public class ProjectController {
     )
     public ResponseEntity<?> delete(
             @PathVariable Long id
-    ){
+    ) {
         workItemService.deleteWork(id, WorkItemType.PROJECT);
         return ApiResponseBuilder.success("Xóa dự án thành công", null);
     }
@@ -200,8 +201,8 @@ public class ProjectController {
     public ResponseEntity<?> refuse(
             @PathVariable Long projectId,
             @RequestBody NoteRequest request
-    ){
-        workItemService.refuse(projectId,request, WorkItemType.PROJECT);
+    ) {
+        workItemService.refuse(projectId, request, WorkItemType.PROJECT);
         return ApiResponseBuilder.success("Từ chối duyệt dự án thành công", null);
     }
 

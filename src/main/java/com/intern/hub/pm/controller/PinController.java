@@ -1,4 +1,4 @@
-package com.intern.hub.pm.controllers;
+package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dtos.request.ChangePinRequest;
 import com.intern.hub.pm.dtos.request.OTPRequest;
@@ -13,7 +13,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,13 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
         description = "API liên quan đến mã pin của user."
 )
 @RestController
-@RequestMapping("${api.prefix:/api/v1}")
+@RequestMapping("${api.prefix}")
 @RequiredArgsConstructor
-@SecurityRequirement(name = "bearerAuth")
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PinController {
 
-    private final UserService userService;
-    private final PinService pinService;
+    UserService userService;
+    PinService pinService;
 
     @PostMapping(path = "/verify-pin")
     @Authenticated
@@ -63,7 +65,7 @@ public class PinController {
                 request.getOldPin(),
                 request.getNewPin()
         );
-        return ApiResponseBuilder.success("Đổi mã pin thành công " , null);
+        return ApiResponseBuilder.success("Đổi mã pin thành công ", null);
     }
 
     @PostMapping(path = "/pin")
@@ -75,10 +77,10 @@ public class PinController {
     public ResponseEntity<?> create(
             @RequestBody PinRequest request
     ) throws Exception {
-        if(!request.getPin().equals(request.getConfirmPin())){
+        if (!request.getPin().equals(request.getConfirmPin())) {
             return ApiResponseBuilder.badRequest("Mã pin không giống nhau!");
         }
-        if(request.getPin().length()<6){
+        if (request.getPin().length() < 6) {
             return ApiResponseBuilder.badRequest("Mã pin phải có 6 số!");
         }
         String emailUser = UserContext.requiredEmail();
@@ -91,7 +93,7 @@ public class PinController {
     @PostMapping(path = "/otp")
     public ResponseEntity<?> verifileOtp(
             @RequestBody OTPRequest request
-    ){
+    ) {
 
         return ApiResponseBuilder.success("Tạo mã pin thành công", null);
     }
