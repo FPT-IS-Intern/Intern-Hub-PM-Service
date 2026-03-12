@@ -1,6 +1,6 @@
 package com.intern.hub.pm.service;
 
-import com.intern.hub.pm.dtos.response.UserResponse;
+import com.intern.hub.pm.dto.response.UserResponse;
 import com.intern.hub.pm.model.User;
 
 import java.util.List;
@@ -15,7 +15,8 @@ public interface IUserService {
 
     List<UserResponse> getAllUsersExceptCurrent();
 
-    void verifyPin(String email, String pin) throws Exception;
+    void verifyPin(Long userId, String pin) throws Exception;
 
-    void create(String emaiUser, String pin) throws Exception;
+    void create(Long userId, String pin) throws Exception;
 }
+

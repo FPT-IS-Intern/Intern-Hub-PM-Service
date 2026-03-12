@@ -1,7 +1,7 @@
 package com.intern.hub.pm.service;
 
-import com.intern.hub.pm.dtos.request.EditRoleUserRequest;
-import com.intern.hub.pm.dtos.response.ProjectUserResponse;
+import com.intern.hub.pm.dto.request.EditRoleUserRequest;
+import com.intern.hub.pm.dto.response.ProjectUserResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.model.EntityMember;
@@ -28,3 +28,4 @@ public interface IEntityMemberService {
     long countMemberOfWork(Long entityId, Status status);
 
 }
+

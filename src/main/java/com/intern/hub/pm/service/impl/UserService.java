@@ -1,10 +1,11 @@
 package com.intern.hub.pm.service.impl;
 
-import com.intern.hub.pm.dtos.response.UserResponse;
+import com.intern.hub.pm.dto.response.UserResponse;
 import com.intern.hub.pm.exceptions.NotFoundException;
 import com.intern.hub.pm.model.User;
 import com.intern.hub.pm.repository.UserRepository;
 import com.intern.hub.pm.service.IUserService;
+import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,27 +39,27 @@ public class UserService implements IUserService {
 
     @Override
     public List<UserResponse> getAllUsersExceptCurrent() {
-        String currentUsername = UserContext.requiredEmail();
-        return userRepository.findAllByEmailNot(currentUsername)
-                .stream()
+        Long currentUserId = UserContext.requiredUserId();
+        return userRepository.findAll().stream()
+                .filter(user -> !user.getId().equals(currentUserId))
                 .map(user -> new UserResponse(user.getId(), user.getFullName(), user.getEmail()))
                 .toList();
     }
 
     @Override
-    public void verifyPin(String email, String pin) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User không tồn tại!"));
+    public void verifyPin(Long userId, String pin) {
+        User user = findById(userId);
         if (user.getPinHash() == null || !passwordEncoder.matches(pin, user.getPinHash())) {
             throw new NotFoundException("Mã PIN không chính xác");
         }
     }
 
     @Override
-    public void create(String emailUser, String pin) {
-        User user = findByEmail(emailUser);
+    public void create(Long userId, String pin) {
+        User user = findById(userId);
         user.setPinHash(passwordEncoder.encode(pin));
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 }
+

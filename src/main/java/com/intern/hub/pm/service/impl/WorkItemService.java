@@ -1,15 +1,15 @@
 package com.intern.hub.pm.service.impl;
 
-import com.intern.hub.pm.dtos.request.EditTaskRequest;
-import com.intern.hub.pm.dtos.request.NoteRequest;
-import com.intern.hub.pm.dtos.request.SubmitTaskRequest;
-import com.intern.hub.pm.dtos.request.TaskRequest;
-import com.intern.hub.pm.dtos.request.UserProjectRequest;
-import com.intern.hub.pm.dtos.request.WorkFilterRequest;
-import com.intern.hub.pm.dtos.request.WorkItemRequest;
-import com.intern.hub.pm.dtos.response.TaskDetailResponse;
-import com.intern.hub.pm.dtos.response.WorkItemDetailResponse;
-import com.intern.hub.pm.dtos.response.WorkItemResponse;
+import com.intern.hub.pm.dto.request.EditTaskRequest;
+import com.intern.hub.pm.dto.request.NoteRequest;
+import com.intern.hub.pm.dto.request.SubmitTaskRequest;
+import com.intern.hub.pm.dto.request.TaskRequest;
+import com.intern.hub.pm.dto.request.UserProjectRequest;
+import com.intern.hub.pm.dto.request.WorkFilterRequest;
+import com.intern.hub.pm.dto.request.WorkItemRequest;
+import com.intern.hub.pm.dto.response.TaskDetailResponse;
+import com.intern.hub.pm.dto.response.WorkItemDetailResponse;
+import com.intern.hub.pm.dto.response.WorkItemResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
@@ -21,6 +21,7 @@ import com.intern.hub.pm.model.WorkItem;
 import com.intern.hub.pm.repository.WorkItemRepository;
 import com.intern.hub.pm.repository.specification.WorkSpecification;
 import com.intern.hub.pm.service.IWorkItemService;
+import com.intern.hub.pm.utils.UserContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -77,8 +78,8 @@ public class WorkItemService implements IWorkItemService {
 
     @Override
     @Transactional
-    public void createProject(WorkItemRequest request, String emailUser) {
-        User creator = userService.findByEmail(emailUser);
+    public void createProject(WorkItemRequest request, Long userId) {
+        User creator = userService.findById(userId);
         User assignee = userService.findById(request.getAssigneeId());
 
         validateDateRange(request.getStartDate(), request.getEndDate());
@@ -108,8 +109,8 @@ public class WorkItemService implements IWorkItemService {
 
     @Override
     @Transactional
-    public void createModule(Long projectId, WorkItemRequest request, String emailUser) {
-        User creator = userService.findByEmail(emailUser);
+    public void createModule(Long projectId, WorkItemRequest request, Long userId) {
+        User creator = userService.findById(userId);
         User assignee = userService.findById(request.getAssigneeId());
         WorkItem project = findById(projectId);
 
@@ -146,8 +147,8 @@ public class WorkItemService implements IWorkItemService {
     }
 
     @Override
-    public void createTask(Long moduleId, TaskRequest request, String emailUser) {
-        User creator = userService.findByEmail(emailUser);
+    public void createTask(Long moduleId, TaskRequest request, Long userId) {
+        User creator = userService.findById(userId);
         WorkItem module = workItemRepository.findById(moduleId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy module có id: " + moduleId));
         if (module.getStatus().equals(StatusWork.CHO_DUYET) || module.getStatus().equals(StatusWork.DA_DUYET)) {
@@ -380,8 +381,7 @@ public class WorkItemService implements IWorkItemService {
     }
 
     private User getCurrentUser() {
-        String email = UserContext.requiredEmail();
-        return userService.findByEmail(email);
+        return userService.findById(UserContext.requiredUserId());
     }
 
     private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
@@ -396,3 +396,4 @@ public class WorkItemService implements IWorkItemService {
         return datePart + String.format("%06d", randomPart).trim();
     }
 }
+

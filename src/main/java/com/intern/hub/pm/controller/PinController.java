@@ -1,11 +1,14 @@
 package com.intern.hub.pm.controller;
 
-import com.intern.hub.pm.dtos.request.ChangePinRequest;
-import com.intern.hub.pm.dtos.request.OTPRequest;
-import com.intern.hub.pm.dtos.request.PinRequest;
-import com.intern.hub.pm.dtos.request.VerifyPinRequest;
-import com.intern.hub.pm.dtos.response.ApiResponseBuilder;
+import com.intern.hub.library.common.dto.ResponseApi;
+import com.intern.hub.library.common.exception.BadRequestException;
+import com.intern.hub.pm.dto.request.ChangePinRequest;
+import com.intern.hub.pm.dto.request.OTPRequest;
+import com.intern.hub.pm.dto.request.PinRequest;
+import com.intern.hub.pm.dto.request.VerifyPinRequest;
+import com.intern.hub.pm.service.impl.PinService;
 import com.intern.hub.pm.service.impl.UserService;
+import com.intern.hub.pm.utils.UserContext;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +16,6 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,13 +40,12 @@ public class PinController {
             summary = "Xác thực mã pin",
             description = "API dùng để xác thực mã pin của user."
     )
-    public ResponseEntity<?> verifyPin(
+    public ResponseApi<?> verifyPin(
             @RequestBody VerifyPinRequest request
-    ) throws Exception {
-        String emailUser = UserContext.requiredEmail();
-
-        userService.verifyPin(emailUser, request.getPin());
-        return ApiResponseBuilder.success("Xác thực thành công", null);
+    ) {
+        Long userId = UserContext.requiredUserId();
+        userService.verifyPin(userId, request.getPin());
+        return ResponseApi.noContent();
     }
 
     //them xac nhan ma otp
@@ -54,15 +55,15 @@ public class PinController {
             summary = "Thay đổi mã pin",
             description = "API dùng để thay đổi mã pin của user (gửi OTP xác nhận tài khoản)."
     )
-    public ResponseEntity<?> changePin(
+    public ResponseApi<?> changePin(
             @RequestBody @Valid ChangePinRequest request
     ) {
-        String emaiUser = UserContext.requiredEmail();
-        pinService.changePin(emaiUser,
+        Long userId = UserContext.requiredUserId();
+        pinService.changePin(userId,
                 request.getOldPin(),
                 request.getNewPin()
         );
-        return ApiResponseBuilder.success("Đổi mã pin thành công ", null);
+        return ResponseApi.noContent();
     }
 
     @PostMapping(path = "/pin")
@@ -71,27 +72,27 @@ public class PinController {
             summary = "Tạo mã pin",
             description = "API dùng để user tạo mã pin."
     )
-    public ResponseEntity<?> create(
+    public ResponseApi<?> create(
             @RequestBody PinRequest request
-    ) throws Exception {
+    ) {
         if (!request.getPin().equals(request.getConfirmPin())) {
-            return ApiResponseBuilder.badRequest("Mã pin không giống nhau!");
+            throw new BadRequestException("pin.confirm.invalid", "Mã pin không giống nhau!");
         }
         if (request.getPin().length() < 6) {
-            return ApiResponseBuilder.badRequest("Mã pin phải có 6 số!");
+            throw new BadRequestException("pin.invalid", "Mã pin phải có 6 số!");
         }
-        String emailUser = UserContext.requiredEmail();
-
-        userService.create(emailUser, request.getPin());
-        return ApiResponseBuilder.success("Tạo mã pin thành công", null);
+        Long userId = UserContext.requiredUserId();
+        userService.create(userId, request.getPin());
+        return ResponseApi.noContent();
     }
 
     //xác nhận otp
     @PostMapping(path = "/otp")
-    public ResponseEntity<?> verifileOtp(
+    public ResponseApi<?> verifileOtp(
             @RequestBody OTPRequest request
     ) {
 
-        return ApiResponseBuilder.success("Tạo mã pin thành công", null);
+        return ResponseApi.noContent();
     }
 }
+

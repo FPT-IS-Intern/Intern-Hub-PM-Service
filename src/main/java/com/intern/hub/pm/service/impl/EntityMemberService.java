@@ -1,8 +1,8 @@
 package com.intern.hub.pm.service.impl;
 
-import com.intern.hub.pm.dtos.request.EditRoleUserRequest;
-import com.intern.hub.pm.dtos.request.UserProjectRequest;
-import com.intern.hub.pm.dtos.response.ProjectUserResponse;
+import com.intern.hub.pm.dto.request.EditRoleUserRequest;
+import com.intern.hub.pm.dto.request.UserProjectRequest;
+import com.intern.hub.pm.dto.response.ProjectUserResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
@@ -165,3 +165,4 @@ public class EntityMemberService implements IEntityMemberService {
         return entityMemberRepository.countByEntityId_IdAndStatus(entityId, status);
     }
 }
+

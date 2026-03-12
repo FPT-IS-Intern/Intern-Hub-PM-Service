@@ -1,6 +1,6 @@
 package com.intern.hub.pm.repository.specification;
 
-import com.intern.hub.pm.dtos.request.EntityMemberFilterRequest;
+import com.intern.hub.pm.dto.request.EntityMemberFilterRequest;
 import com.intern.hub.pm.model.EntityMember;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -55,3 +55,4 @@ public class EntityMemberSpecification {
         };
     }
 }
+

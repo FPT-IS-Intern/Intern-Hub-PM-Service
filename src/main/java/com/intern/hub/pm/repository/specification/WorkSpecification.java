@@ -1,6 +1,6 @@
 package com.intern.hub.pm.repository.specification;
 
-import com.intern.hub.pm.dtos.request.WorkFilterRequest;
+import com.intern.hub.pm.dto.request.WorkFilterRequest;
 import com.intern.hub.pm.model.WorkItem;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,3 +43,4 @@ public class WorkSpecification {
         };
     }
 }
+
