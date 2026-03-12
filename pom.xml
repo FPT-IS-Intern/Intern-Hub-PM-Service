@@ -18,6 +18,8 @@
         <java.version>21</java.version>
         <internhub.common.version>2.1.2</internhub.common.version>
         <internhub.security.version>1.1.0</internhub.security.version>
+        <jib.version>3.5.1</jib.version>
+        <jib.to.image>harbor.fptintern.xyz/internhub-v2/dev/pm:latest</jib.to.image>
     </properties>
 
     <repositories>
@@ -130,7 +132,7 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>3.4.6</version>
+                <version>${jib.version}</version>
                 <configuration>
                     <from>
                         <image>eclipse-temurin:21-jre</image>
