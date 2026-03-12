@@ -37,6 +37,9 @@ management:
       exposure:
         include: health,info
   otlp:
+    metrics:
+      export:
+        enabled: false
     tracing:
       export:
         enabled: false
