@@ -55,7 +55,7 @@ public class WorkItem {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "work_status")
+    @Column(name = "status")
     private StatusWork status;
 
     @Column(name = "budget_point")
