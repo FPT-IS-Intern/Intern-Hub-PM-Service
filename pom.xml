@@ -15,7 +15,7 @@
     <description>Project management service</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <internhub.common.version>2.1.2</internhub.common.version>
         <internhub.security.version>1.1.0</internhub.security.version>
         <jib.version>3.5.1</jib.version>
@@ -135,7 +135,7 @@
                 <version>${jib.version}</version>
                 <configuration>
                     <from>
-                        <image>eclipse-temurin:21-jre</image>
+                        <image>eclipse-temurin:25-jre</image>
                     </from>
                     <to>
                         <image>${jib.to.image}</image>
