@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${gateway-url}")
+    @Value("${gateway-url:http://localhost:8765}")
     private String gatewayUrl;
 
     @Bean
