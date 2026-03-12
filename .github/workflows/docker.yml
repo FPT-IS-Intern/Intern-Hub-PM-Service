@@ -1,8 +1,5 @@
 name: Docker Build & Push to Harbor
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches:
@@ -45,4 +42,4 @@ jobs:
         run: chmod +x ./mvnw
 
       - name: Build and push image with Jib
-        run: ./mvnw -DskipTests -Djib.to.image=${{ secrets.DOCKERHUB_REGISTRY }}/internhub-v2/dev/pm:latest jib:build
+        run: ./mvnw clean compile -DskipTests -Djib.to.image=${{ secrets.DOCKERHUB_REGISTRY }}/internhub-v2/dev/pm:latest jib:build
