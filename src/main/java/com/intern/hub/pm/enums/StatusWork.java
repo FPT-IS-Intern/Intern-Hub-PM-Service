@@ -3,12 +3,11 @@ package com.intern.hub.pm.enums;
 public enum StatusWork {
     CHUA_BAT_DAU("Chưa bắt đầu"),
     DANG_THUC_HIEN("Đang thực hiện"),
+    TRE_HAN("Trễ hạn"),
+    CAN_CHINH_SUA("Cần chỉnh sửa"),
     CHO_DUYET("Chờ duyệt"),
-    DA_DUYET("Đã duyệt"),
     HOAN_THANH("Hoàn thành"),
-    TU_CHOI("Đã từ chối"),
-    DA_XOA("Đã xóa"),
-    QUA_HAN("Qúa hạn");
+    DA_HUY("Đã hủy");
 
     private final String label;
 

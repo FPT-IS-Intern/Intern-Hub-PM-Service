@@ -2,6 +2,9 @@ package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.pm.dto.request.EditTaskRequest;
 import com.intern.hub.pm.dto.request.NoteRequest;
+import com.intern.hub.pm.dto.request.ApproveTaskRequest;
+import com.intern.hub.pm.dto.request.CompleteProjectRequest;
+import com.intern.hub.pm.dto.request.ExtendProjectRequest;
 import com.intern.hub.pm.dto.request.SubmitTaskRequest;
 import com.intern.hub.pm.dto.request.TaskRequest;
 import com.intern.hub.pm.dto.request.UserProjectRequest;
@@ -13,9 +16,9 @@ import com.intern.hub.pm.dto.response.WorkItemResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.exceptions.ConflictException;
-import com.intern.hub.pm.exceptions.ForbiddenException;
-import com.intern.hub.pm.exceptions.NotFoundException;
+import com.intern.hub.library.common.exception.ConflictDataException;
+import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import com.intern.hub.pm.model.User;
 import com.intern.hub.pm.model.WorkItem;
 import com.intern.hub.pm.repository.WorkItemRepository;
@@ -30,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,17 +47,14 @@ public class WorkItemService implements IWorkItemService {
     private final WorkItemRepository workItemRepository;
     private final UserService userService;
     private final EntityMemberService entityMemberService;
+    private final DocumentService documentService;
 
     public Page<WorkItem> getProjects(Pageable pageable) {
         return workItemRepository.findByType(WorkItemType.PROJECT, pageable);
     }
 
-    public Page<WorkItem> getModules(Long projectId, Pageable pageable) {
-        return workItemRepository.findByParentIdAndType(projectId, WorkItemType.MODULE, pageable);
-    }
-
-    public Page<WorkItem> getTasks(Long moduleId, Pageable pageable) {
-        return workItemRepository.findByParentIdAndType(moduleId, WorkItemType.TASK, pageable);
+    public Page<WorkItem> getTasks(Long projectId, Pageable pageable) {
+        return workItemRepository.findByParentIdAndType(projectId, WorkItemType.TASK, pageable);
     }
 
     public Page<WorkItemResponse> getAll(WorkFilterRequest filter, int page, int size) {
@@ -71,6 +72,8 @@ public class WorkItemService implements IWorkItemService {
         res.setName(workItem.getName());
         res.setDescription(workItem.getDescription());
         res.setStatus(workItem.getStatus());
+        res.setBudgetPoint(workItem.getBudgetPoint());
+        res.setRewardPoint(workItem.getRewardPoint());
         res.setStartDate(workItem.getStartDate());
         res.setEndDate(workItem.getEndDate());
         return res;
@@ -78,11 +81,12 @@ public class WorkItemService implements IWorkItemService {
 
     @Override
     @Transactional
-    public void createProject(WorkItemRequest request, Long userId) {
+    public void createProject(WorkItemRequest request, List<MultipartFile> files, Long userId) {
         User creator = userService.findById(userId);
         User assignee = userService.findById(request.getAssigneeId());
 
         validateDateRange(request.getStartDate(), request.getEndDate());
+        validateProjectRequest(request);
 
         WorkItem workItem = new WorkItem();
         workItem.setCreatorId(creator.getId());
@@ -93,6 +97,10 @@ public class WorkItemService implements IWorkItemService {
         workItem.setName(request.getName());
         workItem.setDescription(request.getDescription());
         workItem.setStatus(StatusWork.CHUA_BAT_DAU);
+        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
+        workItem.setReclaimedPoint(0L);
+        workItem.setBonusPoint(0L);
         workItem.setResult("");
         workItem.setResultLink("");
         workItem.setNote("");
@@ -101,6 +109,7 @@ public class WorkItemService implements IWorkItemService {
         workItem.setCreatedAt(LocalDateTime.now());
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
+        documentService.saveDocuments(workItem, "PROJECT", files, userId, "pm/projects/" + workItem.getId());
 
         if (request.getUserList() != null && !request.getUserList().isEmpty()) {
             entityMemberService.saveListUserProject(workItem.getId(), request.getUserList());
@@ -109,67 +118,34 @@ public class WorkItemService implements IWorkItemService {
 
     @Override
     @Transactional
-    public void createModule(Long projectId, WorkItemRequest request, Long userId) {
+    public void createTask(Long projectId, TaskRequest request, List<MultipartFile> files, Long userId) {
         User creator = userService.findById(userId);
-        User assignee = userService.findById(request.getAssigneeId());
-        WorkItem project = findById(projectId);
-
-        if (!project.getAssigneeId().equals(creator.getId())) {
-            throw new NotFoundException("Bạn không phải là chủ dự án này nên không có quyền tạo module!");
+        WorkItem project = workItemRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án có id: " + projectId));
+        if (project.getStatus().equals(StatusWork.HOAN_THANH) || project.getStatus().equals(StatusWork.DA_HUY)) {
+            throw new NotFoundException("task.create.invalid.state", "Dự án đã hoàn thành hoặc đã hủy nên không thể tạo task");
         }
-        if (project.getStatus().equals(StatusWork.CHO_DUYET) || project.getStatus().equals(StatusWork.DA_DUYET)) {
-            throw new NotFoundException("Module đang chờ duyệt hoặc đã kết thúc nên không thể tạo module");
-        }
-
-        validateDateRange(request.getStartDate(), request.getEndDate());
-
-        WorkItem workItem = new WorkItem();
-        workItem.setCreatorId(creator.getId());
-        workItem.setAssigneeId(assignee.getId());
-        workItem.setWorkItemUuid(generateWorkItemUuid());
-        workItem.setParent(project);
-        workItem.setType(WorkItemType.MODULE);
-        workItem.setName(request.getName());
-        workItem.setDescription(request.getDescription());
-        workItem.setStatus(StatusWork.CHUA_BAT_DAU);
-        workItem.setResult("");
-        workItem.setResultLink("");
-        workItem.setNote("");
-        workItem.setStartDate(request.getStartDate());
-        workItem.setEndDate(request.getEndDate());
-        workItem.setCreatedAt(LocalDateTime.now());
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
-
-        if (request.getUserList() != null && !request.getUserList().isEmpty()) {
-            entityMemberService.saveListUserModule(workItem.getId(), request.getUserList());
-        }
-    }
-
-    @Override
-    public void createTask(Long moduleId, TaskRequest request, Long userId) {
-        User creator = userService.findById(userId);
-        WorkItem module = workItemRepository.findById(moduleId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy module có id: " + moduleId));
-        if (module.getStatus().equals(StatusWork.CHO_DUYET) || module.getStatus().equals(StatusWork.DA_DUYET)) {
-            throw new NotFoundException("Module đang chờ duyệt hoặc đã kết thúc nên không thể tạo task");
-        }
-        if (!module.getAssigneeId().equals(creator.getId())) {
-            throw new NotFoundException("Bạn không phải là chủ của module này nên không có quyền tạo task!");
+        if (!project.getAssigneeId().equals(creator.getId()) && !project.getCreatorId().equals(creator.getId())) {
+            throw new NotFoundException("task.create.forbidden", "Bạn không có quyền tạo task trong dự án này!");
         }
 
         User assignee = userService.findById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
+        validateTaskRequest(request);
 
         WorkItem task = new WorkItem();
         task.setWorkItemUuid(generateWorkItemUuid());
-        task.setParent(module);
+        task.setParent(project);
         task.setType(WorkItemType.TASK);
         task.setCreatorId(creator.getId());
         task.setAssigneeId(assignee.getId());
         task.setName(request.getTaskName());
         task.setDescription(request.getDescription());
         task.setStatus(StatusWork.CHUA_BAT_DAU);
+        task.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        task.setRewardPoint(defaultZero(request.getRewardPoint()));
+        task.setReclaimedPoint(0L);
+        task.setBonusPoint(0L);
         task.setStartDate(request.getStartDate());
         task.setEndDate(request.getEndDate());
         task.setResult("");
@@ -178,6 +154,7 @@ public class WorkItemService implements IWorkItemService {
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(task);
+        documentService.saveDocuments(task, "TASK_GUIDE", files, userId, "pm/tasks/" + task.getId() + "/guide");
     }
 
     @Override
@@ -196,9 +173,15 @@ public class WorkItemService implements IWorkItemService {
                 .name(workItem.getName())
                 .description(workItem.getDescription())
                 .status(workItem.getStatus())
+                .budgetPoint(workItem.getBudgetPoint())
+                .rewardPoint(workItem.getRewardPoint())
+                .reclaimedPoint(workItem.getReclaimedPoint())
+                .bonusPoint(workItem.getBonusPoint())
                 .result(workItem.getResult())
                 .resultLink(workItem.getResultLink())
                 .note(workItem.getNote())
+                .extensionReason(workItem.getExtensionReason())
+                .documents(documentService.getActiveDocuments(workItem.getId(), "PROJECT"))
                 .startDate(workItem.getStartDate())
                 .endDate(workItem.getEndDate())
                 .createdAt(workItem.getCreatedAt())
@@ -212,33 +195,34 @@ public class WorkItemService implements IWorkItemService {
     }
 
     @Override
-    public void addUserModule(Long moduleId, List<UserProjectRequest> requests) {
-        entityMemberService.saveListUserModule(moduleId, requests);
-    }
-
-    @Override
     @Transactional
-    public void editProject(Long id, WorkItemRequest request) {
+    public void editProject(Long id, WorkItemRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(id);
         User user = getCurrentUser();
 
         if (!user.getId().equals(workItem.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là chủ của dự án này!");
+            throw new ForbiddenException("project.update.forbidden", "Bạn không phải là chủ của dự án này!");
         }
         if (workItem.getStatus() != StatusWork.CHUA_BAT_DAU) {
-            throw new ConflictException("Chỉ được sửa khi dự án chưa bắt đầu");
+            throw new ConflictDataException("project.update.conflict", "Chỉ được sửa khi dự án chưa bắt đầu");
         }
 
         User newAssignee = userService.findById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
+        validateProjectRequest(request);
 
         workItem.setAssigneeId(newAssignee.getId());
         workItem.setName(request.getName());
         workItem.setDescription(request.getDescription());
+        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
         workItem.setStartDate(request.getStartDate());
         workItem.setEndDate(request.getEndDate());
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
+        if (files != null) {
+            documentService.replaceDocuments(workItem, "PROJECT", files, user.getId(), "pm/projects/" + workItem.getId());
+        }
 
         if (request.getUserList() != null) {
             entityMemberService.deleteByProjectId(workItem.getId());
@@ -248,15 +232,15 @@ public class WorkItemService implements IWorkItemService {
 
     @Override
     @Transactional
-    public void editTask(Long id, EditTaskRequest request) {
+    public void editTask(Long id, EditTaskRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(id);
         User user = getCurrentUser();
 
         if (!user.getId().equals(workItem.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là chủ của công việc này!");
+            throw new ForbiddenException("task.update.forbidden", "Bạn không phải là chủ của công việc này!");
         }
         if (workItem.getStatus() != StatusWork.CHUA_BAT_DAU) {
-            throw new ConflictException("Chỉ được sửa khi công việc chưa bắt đầu");
+            throw new ConflictDataException("task.update.conflict", "Chỉ được sửa khi công việc chưa bắt đầu");
         }
 
         User newAssignee = userService.findById(request.getAssigneeId());
@@ -265,10 +249,15 @@ public class WorkItemService implements IWorkItemService {
         workItem.setAssigneeId(newAssignee.getId());
         workItem.setName(request.getName());
         workItem.setDescription(request.getDescription());
+        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
         workItem.setStartDate(request.getStartDate());
         workItem.setEndDate(request.getEndDate());
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
+        if (files != null) {
+            documentService.replaceDocuments(workItem, "TASK_GUIDE", files, user.getId(), "pm/tasks/" + workItem.getId() + "/guide");
+        }
     }
 
     @Override
@@ -277,13 +266,13 @@ public class WorkItemService implements IWorkItemService {
         User user = getCurrentUser();
 
         if (!user.getId().equals(workItem.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là chủ của " + workType.getLabel() + " này!");
+            throw new ForbiddenException("work.delete.forbidden", "Bạn không phải là chủ của " + workType.getLabel() + " này!");
         }
         if (!workItem.getStatus().equals(StatusWork.CHUA_BAT_DAU)) {
-            throw new NotFoundException(workType.getLabel() + " đang tiến hành không xóa được!");
+            throw new NotFoundException("work.delete.invalid.state", workType.getLabel() + " đang tiến hành không xóa được!");
         }
 
-        workItem.setStatus(StatusWork.DA_XOA);
+        workItem.setStatus(StatusWork.DA_HUY);
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
     }
@@ -291,25 +280,52 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public WorkItem findById(Long id) {
         return workItemRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy id dự án: " + id));
+                .orElseThrow(() -> new NotFoundException("work.not.found", "Không tìm thấy id dự án: " + id));
     }
 
     @Override
-    public WorkItem refuse(Long workId, NoteRequest request, WorkItemType workItemType) {
-        WorkItem work = findById(workId);
+    public WorkItem refuseTask(Long taskId, NoteRequest request) {
+        WorkItem work = findById(taskId);
         User user = getCurrentUser();
 
         if (!user.getId().equals(work.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là chủ của " + workItemType.getLabel().toLowerCase() + " này!");
+            throw new ForbiddenException("task.refuse.forbidden", "Bạn không phải là người giao nhiệm vụ này!");
         }
         if (!work.getStatus().equals(StatusWork.CHO_DUYET)) {
-            throw new NotFoundException(workItemType.getLabel() + " này chưa nộp nên không từ chối được!");
+            throw new NotFoundException("task.refuse.invalid.state", "Task này chưa nộp nên không thể yêu cầu chỉnh sửa!");
         }
 
-        work.setStatus(StatusWork.TU_CHOI);
+        work.setStatus(StatusWork.CAN_CHINH_SUA);
         work.setNote(request.getNote());
         work.setUpdatedAt(LocalDateTime.now());
         return workItemRepository.save(work);
+    }
+
+    @Override
+    public WorkItem approveTask(Long taskId, ApproveTaskRequest request) {
+        WorkItem task = findById(taskId);
+        User user = getCurrentUser();
+
+        if (task.getType() != WorkItemType.TASK) {
+            throw new NotFoundException("task.not.found", "Không tìm thấy task cần duyệt");
+        }
+        if (!user.getId().equals(task.getCreatorId())) {
+            throw new ForbiddenException("task.approve.forbidden", "Bạn không phải là người giao nhiệm vụ này!");
+        }
+        if (task.getStatus() != StatusWork.CHO_DUYET) {
+            throw new ConflictDataException("task.approve.invalid.state", "Chỉ duyệt được task đang ở trạng thái chờ duyệt");
+        }
+
+        long reclaimedPoint = defaultZero(request.getReclaimedPoint());
+        if (reclaimedPoint > defaultZero(task.getBudgetPoint())) {
+            throw new ConflictDataException("task.approve.reclaimed.invalid", "Điểm thu hồi không được lớn hơn ngân sách task");
+        }
+
+        task.setReclaimedPoint(reclaimedPoint);
+        task.setStatus(StatusWork.HOAN_THANH);
+        task.setNote(request.getNote());
+        task.setUpdatedAt(LocalDateTime.now());
+        return workItemRepository.save(task);
     }
 
     @Override
@@ -328,9 +344,14 @@ public class WorkItemService implements IWorkItemService {
                 .name(workItem.getName())
                 .description(workItem.getDescription())
                 .status(workItem.getStatus())
+                .budgetPoint(workItem.getBudgetPoint())
+                .rewardPoint(workItem.getRewardPoint())
+                .reclaimedPoint(workItem.getReclaimedPoint())
                 .result(workItem.getResult())
                 .resultLink(workItem.getResultLink())
                 .note(workItem.getNote())
+                .guideDocuments(documentService.getActiveDocuments(workItem.getId(), "TASK_GUIDE"))
+                .submissionDocuments(documentService.getActiveDocuments(workItem.getId(), "TASK_SUBMISSION"))
                 .startDate(workItem.getStartDate())
                 .endDate(workItem.getEndDate())
                 .createdAt(workItem.getCreatedAt())
@@ -339,25 +360,15 @@ public class WorkItemService implements IWorkItemService {
     }
 
     @Override
-    public void submit(Long taskId, SubmitTaskRequest request, WorkItemType workItemType) {
+    public void submitTask(Long taskId, SubmitTaskRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(taskId);
         User user = getCurrentUser();
 
         if (!user.getId().equals(workItem.getAssigneeId())) {
-            throw new NotFoundException("Bạn không phải là người thực hiện công việc này!");
+            throw new NotFoundException("work.submit.forbidden", "Bạn không phải là người thực hiện công việc này!");
         }
-
-        WorkItemType childType = getChildType(workItemType);
-        if (childType != null) {
-            boolean exists = workItemRepository.existsByParent_IdAndTypeAndStatusNotIn(
-                    taskId,
-                    childType,
-                    List.of(StatusWork.DA_DUYET, StatusWork.DA_XOA)
-            );
-
-            if (exists) {
-                throw new NotFoundException("Có " + childType.name().toLowerCase() + " chưa hoàn thành nên không thể nộp!");
-            }
+        if (workItem.getType() != WorkItemType.TASK) {
+            throw new NotFoundException("task.not.found", "Không tìm thấy task cần nộp");
         }
 
         workItem.setResult(request.getResult());
@@ -365,14 +376,75 @@ public class WorkItemService implements IWorkItemService {
         workItem.setStatus(StatusWork.CHO_DUYET);
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
+        documentService.replaceDocuments(
+                workItem,
+                "TASK_SUBMISSION",
+                files,
+                user.getId(),
+                "pm/tasks/" + workItem.getId() + "/submission");
     }
 
-    private WorkItemType getChildType(WorkItemType type) {
-        return switch (type) {
-            case PROJECT -> WorkItemType.MODULE;
-            case MODULE -> WorkItemType.TASK;
-            default -> null;
-        };
+    @Override
+    public WorkItem extendProject(Long projectId, ExtendProjectRequest request) {
+        WorkItem project = findById(projectId);
+        User user = getCurrentUser();
+
+        if (project.getType() != WorkItemType.PROJECT) {
+            throw new NotFoundException("project.not.found", "Không tìm thấy dự án cần gia hạn");
+        }
+        if (!user.getId().equals(project.getCreatorId()) && !user.getId().equals(project.getAssigneeId())) {
+            throw new ForbiddenException("project.extend.forbidden", "Bạn không có quyền gia hạn dự án này");
+        }
+        if (request.getNewEndDate() == null) {
+            throw new ConflictDataException("project.extend.end-date.required", "Ngày gia hạn mới là bắt buộc");
+        }
+        if (project.getStatus() == StatusWork.HOAN_THANH || project.getStatus() == StatusWork.DA_HUY) {
+            throw new ConflictDataException("project.extend.invalid.state", "Không thể gia hạn dự án đã hoàn thành hoặc đã hủy");
+        }
+        if (!request.getNewEndDate().isAfter(LocalDateTime.now())) {
+            throw new ConflictDataException("project.extend.end-date.invalid", "Ngày gia hạn mới phải lớn hơn hiện tại");
+        }
+        if (project.getEndDate() != null && !request.getNewEndDate().isAfter(project.getEndDate())) {
+            throw new ConflictDataException("project.extend.end-date.not-after", "Ngày gia hạn mới phải lớn hơn ngày kết thúc hiện tại");
+        }
+
+        project.setEndDate(request.getNewEndDate());
+        project.setExtensionReason(request.getReason());
+        project.setStatus(StatusWork.DANG_THUC_HIEN);
+        project.setUpdatedAt(LocalDateTime.now());
+        return workItemRepository.save(project);
+    }
+
+    @Override
+    public WorkItem completeProject(Long projectId, CompleteProjectRequest request) {
+        WorkItem project = findById(projectId);
+        User user = getCurrentUser();
+
+        if (project.getType() != WorkItemType.PROJECT) {
+            throw new NotFoundException("project.not.found", "Không tìm thấy dự án cần kết thúc");
+        }
+        if (!user.getId().equals(project.getCreatorId()) && !user.getId().equals(project.getAssigneeId())) {
+            throw new ForbiddenException("project.complete.forbidden", "Bạn không có quyền kết thúc dự án này");
+        }
+        if (project.getStatus() == StatusWork.HOAN_THANH || project.getStatus() == StatusWork.DA_HUY) {
+            throw new ConflictDataException("project.complete.invalid.state", "Dự án này không thể kết thúc thêm lần nữa");
+        }
+        if (workItemRepository.existsByParent_IdAndStatus(projectId, StatusWork.CHO_DUYET)) {
+            throw new ConflictDataException("project.complete.pending-tasks", "Không thể kết thúc dự án khi còn task chờ duyệt");
+        }
+
+        long reclaimedPoint = defaultZero(request.getReclaimedPoint());
+        long bonusPoint = defaultZero(request.getBonusPoint());
+        if (reclaimedPoint > defaultZero(project.getBudgetPoint())) {
+            throw new ConflictDataException("project.complete.reclaimed.invalid", "Điểm thu hồi không được lớn hơn ngân sách dự án");
+        }
+
+        project.setReclaimedPoint(reclaimedPoint);
+        project.setBonusPoint(bonusPoint);
+        project.setNote(request.getNote());
+        project.setStatus(StatusWork.HOAN_THANH);
+        project.setUpdatedAt(LocalDateTime.now());
+        return workItemRepository.save(project);
     }
 
     @Override
@@ -386,8 +458,47 @@ public class WorkItemService implements IWorkItemService {
 
     private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-            throw new ConflictException("Ngày bắt đầu phải trước ngày kết thúc");
+            throw new ConflictDataException("work.date.invalid", "Ngày bắt đầu phải trước ngày kết thúc");
         }
+    }
+
+    private void validateProjectRequest(WorkItemRequest request) {
+        validateCommonWorkRequest(request.getName(), request.getDescription(), request.getStartDate(), request.getEndDate());
+        if (request.getAssigneeId() == null) {
+            throw new ConflictDataException("project.assignee.required", "PM phụ trách là bắt buộc");
+        }
+    }
+
+    private void validateTaskRequest(TaskRequest request) {
+        validateCommonWorkRequest(request.getTaskName(), request.getDescription(), request.getStartDate(), request.getEndDate());
+        if (request.getAssigneeId() == null) {
+            throw new ConflictDataException("task.assignee.required", "Người thực hiện task là bắt buộc");
+        }
+    }
+
+    private void validateCommonWorkRequest(String name, String description, LocalDateTime startDate, LocalDateTime endDate) {
+        if (name == null || name.isBlank()) {
+            throw new ConflictDataException("work.name.required", "Tên là bắt buộc");
+        }
+        if (name.length() > 100) {
+            throw new ConflictDataException("work.name.size.invalid", "Tên không được vượt quá 100 ký tự");
+        }
+        if (description == null || description.isBlank()) {
+            throw new ConflictDataException("work.description.required", "Mô tả là bắt buộc");
+        }
+        if (description.length() > 255) {
+            throw new ConflictDataException("work.description.size.invalid", "Mô tả không được vượt quá 255 ký tự");
+        }
+        if (startDate == null || endDate == null) {
+            throw new ConflictDataException("work.date.required", "Ngày bắt đầu và ngày kết thúc là bắt buộc");
+        }
+        if (!startDate.isAfter(LocalDateTime.now())) {
+            throw new ConflictDataException("work.start-date.invalid", "Ngày bắt đầu phải lớn hơn thời điểm hiện tại");
+        }
+    }
+
+    private long defaultZero(Long value) {
+        return value == null ? 0L : value;
     }
 
     private String generateWorkItemUuid() {

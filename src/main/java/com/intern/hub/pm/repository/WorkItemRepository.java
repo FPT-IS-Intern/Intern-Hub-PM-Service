@@ -3,12 +3,12 @@ package com.intern.hub.pm.repository;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.model.WorkItem;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +24,8 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSp
     List<WorkItem> findByParent_IdAndTypeAndStatus(Long parentId, WorkItemType type, StatusWork status);
 
     boolean existsByParent_IdAndTypeAndStatus(Long parentId, WorkItemType type, StatusWork status);
+
+    boolean existsByParent_IdAndStatus(Long parentId, StatusWork status);
 
     boolean existsByParent_IdAndTypeAndStatusNotIn(Long parentId, WorkItemType type, List<StatusWork> statuses);
 

@@ -10,6 +10,8 @@ public class WorkItemRequest {
     private Long assigneeId;
     private String name;
     private String description;
+    private Long budgetPoint;
+    private Long rewardPoint;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private List<UserProjectRequest> userList;

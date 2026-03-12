@@ -10,7 +10,8 @@ public class EditTaskRequest {
     private Long assigneeId;
     private String name;
     private String description;
-    private StatusWork status;
+    private Long budgetPoint;
+    private Long rewardPoint;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 }

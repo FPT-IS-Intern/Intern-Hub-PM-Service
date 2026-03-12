@@ -6,7 +6,7 @@ import com.intern.hub.pm.dto.response.ProjectUserResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.exceptions.NotFoundException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import com.intern.hub.pm.model.EntityMember;
 import com.intern.hub.pm.model.User;
 import com.intern.hub.pm.model.WorkItem;
@@ -38,14 +38,14 @@ public class EntityMemberService implements IEntityMemberService {
     @Transactional
     public void saveListUserProject(Long id, List<UserProjectRequest> requests) {
         WorkItem workItem = workItemRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án id: " + id));
+                .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án id: " + id));
 
         for (UserProjectRequest req : requests) {
             User user = userService.findById(req.getId());
 
             if (entityMemberRepository.existsByEntityTypeAndEntityId_IdAndUserIdAndRoleAndStatus(
                     WorkItemType.PROJECT, id, user.getId(), req.getRole(), Status.ACTIVE)) {
-                throw new NotFoundException("User : " + user.getFullName() + " đã tồn tại trong dự án");
+                throw new NotFoundException("project.member.duplicated", "User : " + user.getFullName() + " đã tồn tại trong dự án");
             }
 
             EntityMember e = new EntityMember();
@@ -60,35 +60,10 @@ public class EntityMemberService implements IEntityMemberService {
         }
     }
 
-    @Transactional
-    public void saveListUserModule(Long id, List<UserProjectRequest> requests) {
-        WorkItem workItem = workItemRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án id: " + id));
-
-        for (UserProjectRequest req : requests) {
-            User user = userService.findById(req.getId());
-
-            if (entityMemberRepository.existsByEntityTypeAndEntityId_IdAndUserIdAndRoleAndStatus(
-                    WorkItemType.MODULE, id, user.getId(), req.getRole(), Status.ACTIVE)) {
-                throw new NotFoundException("User : " + user.getFullName() + " đã tồn tại trong module");
-            }
-
-            EntityMember e = new EntityMember();
-            e.setEntityType(WorkItemType.MODULE);
-            e.setEntityId(workItem);
-            e.setUserId(user.getId());
-            e.setRole(req.getRole());
-            e.setStatus(Status.ACTIVE);
-            e.setCreatedAt(LocalDateTime.now());
-            e.setUpdatedAt(LocalDateTime.now());
-            entityMemberRepository.save(e);
-        }
-    }
-
     @Override
     public Page<ProjectUserResponse> projectUserList(Long projectId, WorkItemType workItemType, int page, int size) {
         WorkItem project = workItemRepository.findById(projectId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án id: " + projectId));
+                .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án id: " + projectId));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -99,12 +74,8 @@ public class EntityMemberService implements IEntityMemberService {
                 pageable
         );
 
-        List<Object[]> results;
-        if (workItemType.equals(WorkItemType.PROJECT)) {
-            results = workItemRepository.countTaskByProjectGroupByUser(projectId, WorkItemType.MODULE, StatusWork.DA_XOA);
-        } else {
-            results = workItemRepository.countTaskByProjectGroupByUser(projectId, WorkItemType.TASK, StatusWork.DA_XOA);
-        }
+        List<Object[]> results =
+                workItemRepository.countTaskByProjectGroupByUser(projectId, WorkItemType.TASK, StatusWork.DA_HUY);
 
         Map<Long, Long> taskCountMap = results.stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
@@ -126,7 +97,7 @@ public class EntityMemberService implements IEntityMemberService {
     @Override
     public EntityMember findById(Long id) {
         return entityMemberRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy user trong dự án"));
+                .orElseThrow(() -> new NotFoundException("project.member.not.found", "Không tìm thấy user trong dự án"));
     }
 
     @Override
@@ -139,12 +110,12 @@ public class EntityMemberService implements IEntityMemberService {
         EntityMember entityMember = findById(id);
 
         WorkItem workItem = workItemRepository.findById(entityMember.getEntityId().getId())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án có id: " + id));
+                .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án có id: " + id));
 
         Optional<WorkItem> workItemOfUser = workItemRepository.findByParentAndAssigneeId(workItem, entityMember.getUserId());
 
-        if (workItemOfUser.isPresent() && workItemOfUser.get().getStatus() != StatusWork.DA_XOA) {
-            throw new NotFoundException("User này có dự án đang làm nên không xóa được!");
+        if (workItemOfUser.isPresent() && workItemOfUser.get().getStatus() != StatusWork.DA_HUY) {
+            throw new NotFoundException("project.member.delete.forbidden", "User này có dự án đang làm nên không xóa được!");
         }
 
         entityMember.setStatus(Status.DELETED);

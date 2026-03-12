@@ -17,9 +17,14 @@ import java.time.LocalDateTime;
         "startDate",
         "endDate",
         "status",
+        "budgetPoint",
+        "rewardPoint",
+        "reclaimedPoint",
         "result",
         "resultLink",
         "note",
+        "guideDocuments",
+        "submissionDocuments",
         "createdAt",
         "updatedAt"
 })
@@ -34,9 +39,14 @@ public class TaskDetailResponse {
     private String name;
     private String description;
     private StatusWork status;
+    private Long budgetPoint;
+    private Long rewardPoint;
+    private Long reclaimedPoint;
     private String result;
     private String resultLink;
     private String note;
+    private java.util.List<DocumentResponse> guideDocuments;
+    private java.util.List<DocumentResponse> submissionDocuments;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime createdAt;

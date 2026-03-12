@@ -26,7 +26,7 @@ import java.util.List;
         description = "API liên quan đến project."
 )
 @RestController
-@RequestMapping("${api.prefix:/api/v1}")
+@RequestMapping("${api.prefix:/pm}")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectController {
@@ -55,12 +55,12 @@ public class ProjectController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         filter.setType(WorkItemType.PROJECT);
-        filter.setStatusNot(String.valueOf(StatusWork.DA_XOA));
+        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
         return ResponseApi.ok(toPageResponse(pageResult));
     }
 
-    @PostMapping(path = {"/project", "/projects"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/projects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Tạo dự án",
@@ -71,19 +71,16 @@ public class ProjectController {
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
         Long userId = UserContext.requiredUserId();
-        workItemService.createProject(projectJson, userId);
-        if (files != null && !files.isEmpty()) {
-            List<MultipartFile> file2 = files;
-        }
+        workItemService.createProject(projectJson, files, userId);
         return ResponseApi.noContent();
     }
 
-    // list user trong dự án (để hiển thị trong module )
-    @GetMapping(path = {"/project/{projectId}/users", "/projects/{projectId}/users"})
+    // list user trong dự án
+    @GetMapping(path = "/projects/{projectId}/users")
     @Authenticated
     @Operation(
             summary = "Danh sách user của dự án",
-            description = "API dùng để lấy ra danh sách user của một dự án (để hiển thị trong module)."
+            description = "API dùng để lấy ra danh sách user của một dự án."
     )
     public ResponseApi<PageResponse<ProjectUserResponse>> getUserOfProject(
             @PathVariable Long projectId,
@@ -95,12 +92,11 @@ public class ProjectController {
         return ResponseApi.ok(toPageResponse(pageResult));
     }
 
-    //detail, thêm tran với type của work
-    @GetMapping({"/project/{id}/detail", "/projects/{id}", "/projects/{id}/detail"})
+    @GetMapping("/projects/{id}")
     @Authenticated
     @Operation(
             summary = "Chi tiết dự án",
-            description = "API dùng để xem chi tiết dự án (dự án, module)."
+            description = "API dùng để xem chi tiết dự án."
     )
     public ResponseApi<WorkItemDetailResponse> detailProject(@PathVariable Long id) {
         WorkItemDetailResponse response = workItemService.workItemDetailResponse(id);
@@ -108,7 +104,7 @@ public class ProjectController {
     }
 
     //add user vào pro
-    @PostMapping({"/project/{projectId}/users", "/projects/{projectId}/users"})
+    @PostMapping("/projects/{projectId}/users")
     @Authenticated
     @Operation(
             summary = "Thêm user vào dự án",
@@ -123,7 +119,7 @@ public class ProjectController {
     }
 
     // xóa user
-    @DeleteMapping({"/project/user/{memberId}", "/projects/users/{memberId}"})
+    @DeleteMapping("/projects/users/{memberId}")
     @Authenticated
     @Operation(
             summary = "Xóa user trong dự án",
@@ -137,7 +133,7 @@ public class ProjectController {
     }
 
     //sửa role user
-    @PutMapping({"/project/user/{memberId}", "/projects/users/{memberId}"})
+    @PutMapping("/projects/users/{memberId}")
     @Authenticated
     @Operation(
             summary = "Sửa role của user",
@@ -152,7 +148,7 @@ public class ProjectController {
     }
 
     //chinh sua du an
-    @PutMapping(path = {"/project/{id}", "/projects/{id}"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/projects/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Chỉnh sửa dự án",
@@ -163,15 +159,12 @@ public class ProjectController {
             @RequestPart("project") WorkItemRequest projectJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        workItemService.editProject(id, projectJson);
-        if (files != null && !files.isEmpty()) {
-            List<MultipartFile> file2 = files;
-        }
+        workItemService.editProject(id, projectJson, files);
         return ResponseApi.noContent();
     }
 
     // delete
-    @DeleteMapping(path = {"/project/{id}", "/projects/{id}"})
+    @DeleteMapping(path = "/projects/{id}")
     @Authenticated
     @Operation(
             summary = "Đóng dự án",
@@ -184,18 +177,31 @@ public class ProjectController {
         return ResponseApi.noContent();
     }
 
-    // từ chối duyệt
-    @PostMapping({"/project/{projectId}/refuse", "/projects/{projectId}/refuse"})
+    @PostMapping("/projects/{projectId}/extend")
     @Authenticated
     @Operation(
-            summary = "Từ chối duyệt dự án",
-            description = "API dùng để từ chối duyệt một dự án."
+            summary = "Gia hạn dự án",
+            description = "API dùng để gia hạn ngày kết thúc dự án."
     )
-    public ResponseApi<?> refuse(
+    public ResponseApi<?> extendProject(
             @PathVariable Long projectId,
-            @RequestBody NoteRequest request
+            @RequestBody ExtendProjectRequest request
     ) {
-        workItemService.refuse(projectId, request, WorkItemType.PROJECT);
+        workItemService.extendProject(projectId, request);
+        return ResponseApi.noContent();
+    }
+
+    @PostMapping("/projects/{projectId}/complete")
+    @Authenticated
+    @Operation(
+            summary = "Kết thúc dự án",
+            description = "API dùng để kết thúc dự án sau khi hoàn tất toàn bộ task."
+    )
+    public ResponseApi<?> completeProject(
+            @PathVariable Long projectId,
+            @RequestBody CompleteProjectRequest request
+    ) {
+        workItemService.completeProject(projectId, request);
         return ResponseApi.noContent();
     }
 

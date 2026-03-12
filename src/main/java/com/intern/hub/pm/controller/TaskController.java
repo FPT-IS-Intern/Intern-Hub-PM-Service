@@ -25,7 +25,7 @@ import java.util.List;
         description = "API liên quan đến task."
 )
 @RestController
-@RequestMapping("${api.prefix:/api/v1}")
+@RequestMapping("${api.prefix:/pm}")
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TaskController {
@@ -42,45 +42,42 @@ public class TaskController {
         );
     }
 
-    @PostMapping(path = {"/module/{moduleId}/task", "/modules/{moduleId}/tasks"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/projects/{projectId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Tạo task",
             description = "API dùng để tạo task."
     )
-    public ResponseApi<?> createModule(
-            @PathVariable Long moduleId,
+    public ResponseApi<?> createTask(
+            @PathVariable Long projectId,
             @RequestPart("task") TaskRequest taskJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
         Long userId = UserContext.requiredUserId();
-        workItemService.createTask(moduleId, taskJson, userId);
-        if (files != null && !files.isEmpty()) {
-            List<MultipartFile> file2 = files;
-        }
+        workItemService.createTask(projectId, taskJson, files, userId);
         return ResponseApi.noContent();
     }
 
-    @GetMapping({"/module/{moduleId}/task", "/modules/{moduleId}/tasks"})
+    @GetMapping("/projects/{projectId}/tasks")
     @Authenticated
     @Operation(
             summary = "Danh sách task",
-            description = "API danh sách các task trong một module."
+            description = "API danh sách các task trong một dự án."
     )
     public ResponseApi<PageResponse<WorkItemResponse>> getTask(
-            @PathVariable Long moduleId,
+            @PathVariable Long projectId,
             WorkFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         filter.setType(WorkItemType.TASK);
-        filter.setParentId(moduleId);
-        filter.setStatusNot(String.valueOf(StatusWork.DA_XOA));
+        filter.setParentId(projectId);
+        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
         return ResponseApi.ok(toPageResponse(pageResult));
     }
 
-    @GetMapping({"/task/{taskId}", "/tasks/{taskId}"})
+    @GetMapping("/tasks/{taskId}")
     @Authenticated
     @Operation(
             summary = "Chi tiết task",
@@ -92,7 +89,7 @@ public class TaskController {
     }
 
     //edit
-    @PutMapping(path = {"/task/{id}", "/tasks/{id}"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/tasks/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Sửa task",
@@ -103,13 +100,12 @@ public class TaskController {
             @RequestPart("task") EditTaskRequest taskJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        workItemService.editTask(id, taskJson);
-        List<MultipartFile> file2 = files;
+        workItemService.editTask(id, taskJson, files);
         return ResponseApi.noContent();
     }
 
     //nộp task
-    @PostMapping(path = {"/task/{taskId}/submit", "/tasks/{taskId}/submit"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/tasks/{taskId}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Authenticated
     @Operation(
             summary = "Nộp task",
@@ -120,12 +116,30 @@ public class TaskController {
             @RequestPart("result") SubmitTaskRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        workItemService.submit(taskId, request, WorkItemType.TASK);
+        workItemService.submitTask(taskId, request, files);
         return ResponseApi.noContent();
     }
 
+    @GetMapping("/my-tasks")
+    @Authenticated
+    @Operation(
+            summary = "Nhiệm vụ của tôi",
+            description = "API dùng để lấy danh sách task được giao cho user hiện tại."
+    )
+    public ResponseApi<PageResponse<WorkItemResponse>> getMyTasks(
+            WorkFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        filter.setType(WorkItemType.TASK);
+        filter.setAssignee(String.valueOf(UserContext.requiredUserId()));
+        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
+        Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
+        return ResponseApi.ok(toPageResponse(pageResult));
+    }
+
     // từ chối duyệt
-    @PostMapping({"/task/{taskId}/refuse", "/tasks/{taskId}/refuse"})
+    @PostMapping("/tasks/{taskId}/refuse")
     @Authenticated
     @Operation(
             summary = "Từ chối duyệt task",
@@ -135,11 +149,25 @@ public class TaskController {
             @PathVariable Long taskId,
             @RequestBody NoteRequest request
     ) {
-        workItemService.refuse(taskId, request, WorkItemType.TASK);
+        workItemService.refuseTask(taskId, request);
         return ResponseApi.noContent();
     }
 
-    @DeleteMapping(path = {"/task/{id}", "/tasks/{id}"})
+    @PostMapping("/tasks/{taskId}/approve")
+    @Authenticated
+    @Operation(
+            summary = "Duyệt task",
+            description = "API dùng để duyệt task đã nộp và chuyển sang hoàn thành."
+    )
+    public ResponseApi<?> approve(
+            @PathVariable Long taskId,
+            @RequestBody ApproveTaskRequest request
+    ) {
+        workItemService.approveTask(taskId, request);
+        return ResponseApi.noContent();
+    }
+
+    @DeleteMapping(path = "/tasks/{id}")
     @Authenticated
     @Operation(
             summary = "Đóng task",

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 
 @Builder
 @Entity
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "documents")

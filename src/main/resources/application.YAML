@@ -1,42 +1,55 @@
-server:
-  port: ${PORT:8080}
-
-api:
-  prefix: /pm
-
 spring:
+  application:
+    name: intern-hub-pm-service
+  jmx:
+    enabled: false
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/InternHubPM}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: public
-
-
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 2
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2
 
-  main:
-    allow-bean-definition-overriding: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+
+audit:
   data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      ssl:
-        enabled: ${REDIS_SSL_ENABLED:false}
+    enabled: false
+
+api:
+  prefix: /pm
 
 security:
   internal-secret: ${INTERNAL_SECRET_KEY}
@@ -49,3 +62,28 @@ common:
 jwt:
   secret: ${JWT_SECRET_KEY}
   expiration: 36000000
+
+services:
+  dms:
+    url: ${DMS_SERVICE_URL:http://localhost:8084}
+    system-actor-id: ${DMS_SYSTEM_ACTOR_ID:0}
+
+pm:
+  status-scheduler:
+    fixed-delay-ms: 60000
+
+logging:
+  level:
+    root: INFO
+    com.intern.hub: INFO
+    org.springframework: WARN
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.apache.catalina: WARN
+    org.apache.coyote: WARN
+    org.apache.tomcat: WARN
+
+gateway-url: ${GATEWAY_URL}

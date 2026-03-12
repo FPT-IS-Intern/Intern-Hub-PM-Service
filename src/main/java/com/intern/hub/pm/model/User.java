@@ -33,9 +33,6 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "pin_hash", columnDefinition = "TEXT")
-    private String pinHash;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -14,7 +14,7 @@ public class WorkFilterRequest {
     private String statusNot;
     private LocalDate startDate;
     private LocalDate endDate;
-    private WorkItemType type; // PROJECT | MODULE | TASK
+    private WorkItemType type; // PROJECT | TASK
     private Long parentId;
 }
 

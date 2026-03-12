@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
         description = "API liên quan đến user."
 )
 @RestController
-@RequestMapping("${api.prefix:/api/v1}")
+@RequestMapping("${api.prefix:/pm}")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {

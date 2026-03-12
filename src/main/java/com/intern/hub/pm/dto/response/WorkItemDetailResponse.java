@@ -16,9 +16,15 @@ import java.time.LocalDateTime;
         "name",
         "description",
         "status",
+        "budgetPoint",
+        "rewardPoint",
+        "reclaimedPoint",
+        "bonusPoint",
         "result",
         "resultLink",
         "note",
+        "extensionReason",
+        "documents",
         "startDate",
         "endDate",
         "createdAt",
@@ -36,9 +42,15 @@ public class WorkItemDetailResponse {
     private String name;
     private String description;
     private StatusWork status;
+    private Long budgetPoint;
+    private Long rewardPoint;
+    private Long reclaimedPoint;
+    private Long bonusPoint;
     private String result;
     private String resultLink;
     private String note;
+    private String extensionReason;
+    private java.util.List<DocumentResponse> documents;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime createdAt;

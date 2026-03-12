@@ -58,6 +58,18 @@ public class WorkItem {
     @Column(name = "status", columnDefinition = "work_status")
     private StatusWork status;
 
+    @Column(name = "budget_point")
+    private Long budgetPoint;
+
+    @Column(name = "reward_point")
+    private Long rewardPoint;
+
+    @Column(name = "reclaimed_point")
+    private Long reclaimedPoint;
+
+    @Column(name = "bonus_point")
+    private Long bonusPoint;
+
     @Column(name = "result")
     private String result;
 
@@ -66,6 +78,9 @@ public class WorkItem {
 
     @Column(name = "note")
     private String note;
+
+    @Column(name = "extension_reason")
+    private String extensionReason;
 
     @Column(name = "start_date")
     private LocalDateTime startDate;

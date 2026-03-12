@@ -14,9 +14,5 @@ public interface IUserService {
     boolean existsById(Long id);
 
     List<UserResponse> getAllUsersExceptCurrent();
-
-    void verifyPin(Long userId, String pin) throws Exception;
-
-    void create(Long userId, String pin) throws Exception;
 }
 
