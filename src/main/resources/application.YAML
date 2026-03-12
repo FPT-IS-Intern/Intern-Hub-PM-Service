@@ -14,8 +14,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 50MB
   jpa:
     open-in-view: false
     hibernate:
@@ -59,18 +59,12 @@ common:
   context:
     enabled: true
 
-jwt:
-  secret: ${JWT_SECRET_KEY}
-  expiration: 36000000
-
 services:
   dms:
     url: ${DMS_SERVICE_URL:http://localhost:8084}
     system-actor-id: ${DMS_SYSTEM_ACTOR_ID:0}
-
-pm:
-  status-scheduler:
-    fixed-delay-ms: 60000
+  hrm:
+    url: ${HRM_SERVICE_URL:http://localhost:8081}
 
 logging:
   level:

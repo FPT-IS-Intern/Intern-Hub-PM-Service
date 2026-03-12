@@ -8,7 +8,6 @@ import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.library.common.exception.NotFoundException;
 import com.intern.hub.pm.model.EntityMember;
-import com.intern.hub.pm.model.User;
 import com.intern.hub.pm.model.WorkItem;
 import com.intern.hub.pm.repository.EntityMemberRepository;
 import com.intern.hub.pm.repository.WorkItemRepository;
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class EntityMemberService implements IEntityMemberService {
 
-    private final UserService userService;
+    private final HrmUserDirectoryService hrmUserDirectoryService;
     private final WorkItemRepository workItemRepository;
     private final EntityMemberRepository entityMemberRepository;
 
@@ -41,17 +40,17 @@ public class EntityMemberService implements IEntityMemberService {
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án id: " + id));
 
         for (UserProjectRequest req : requests) {
-            User user = userService.findById(req.getId());
+            var user = hrmUserDirectoryService.requireById(req.getId());
 
             if (entityMemberRepository.existsByEntityTypeAndEntityId_IdAndUserIdAndRoleAndStatus(
-                    WorkItemType.PROJECT, id, user.getId(), req.getRole(), Status.ACTIVE)) {
-                throw new NotFoundException("project.member.duplicated", "User : " + user.getFullName() + " đã tồn tại trong dự án");
+                    WorkItemType.PROJECT, id, user.userId(), req.getRole(), Status.ACTIVE)) {
+                throw new NotFoundException("project.member.duplicated", "User : " + user.fullName() + " đã tồn tại trong dự án");
             }
 
             EntityMember e = new EntityMember();
             e.setEntityType(WorkItemType.PROJECT);
             e.setEntityId(workItem);
-            e.setUserId(user.getId());
+            e.setUserId(user.userId());
             e.setRole(req.getRole());
             e.setStatus(Status.ACTIVE);
             e.setCreatedAt(LocalDateTime.now());
@@ -80,13 +79,15 @@ public class EntityMemberService implements IEntityMemberService {
         Map<Long, Long> taskCountMap = results.stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
 
+        var userMap = hrmUserDirectoryService.findByIds(projectUserPage.stream().map(EntityMember::getUserId).toList());
+
         return projectUserPage.map(pu -> {
-            User memberUser = userService.findById(pu.getUserId());
+            var memberUser = userMap.get(pu.getUserId());
             long count = taskCountMap.getOrDefault(pu.getUserId(), 0L);
             return ProjectUserResponse.builder()
                     .id(pu.getId())
-                    .idUser(memberUser.getId())
-                    .name(memberUser.getFullName())
+                    .idUser(pu.getUserId())
+                    .name(memberUser != null ? memberUser.fullName() : null)
                     .role(pu.getRole())
                     .tasksCount(count)
                     .createdAt(pu.getCreatedAt())

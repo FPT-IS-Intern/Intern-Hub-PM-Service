@@ -19,7 +19,6 @@ import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.library.common.exception.ForbiddenException;
 import com.intern.hub.library.common.exception.NotFoundException;
-import com.intern.hub.pm.model.User;
 import com.intern.hub.pm.model.WorkItem;
 import com.intern.hub.pm.repository.WorkItemRepository;
 import com.intern.hub.pm.repository.specification.WorkSpecification;
@@ -45,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class WorkItemService implements IWorkItemService {
 
     private final WorkItemRepository workItemRepository;
-    private final UserService userService;
+    private final HrmUserDirectoryService hrmUserDirectoryService;
     private final EntityMemberService entityMemberService;
     private final DocumentService documentService;
 
@@ -82,15 +81,15 @@ public class WorkItemService implements IWorkItemService {
     @Override
     @Transactional
     public void createProject(WorkItemRequest request, List<MultipartFile> files, Long userId) {
-        User creator = userService.findById(userId);
-        User assignee = userService.findById(request.getAssigneeId());
+        var creator = hrmUserDirectoryService.requireById(userId);
+        var assignee = hrmUserDirectoryService.requireById(request.getAssigneeId());
 
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateProjectRequest(request);
 
         WorkItem workItem = new WorkItem();
-        workItem.setCreatorId(creator.getId());
-        workItem.setAssigneeId(assignee.getId());
+        workItem.setCreatorId(creator.userId());
+        workItem.setAssigneeId(assignee.userId());
         workItem.setWorkItemUuid(generateWorkItemUuid());
         workItem.setParent(null);
         workItem.setType(WorkItemType.PROJECT);
@@ -119,17 +118,17 @@ public class WorkItemService implements IWorkItemService {
     @Override
     @Transactional
     public void createTask(Long projectId, TaskRequest request, List<MultipartFile> files, Long userId) {
-        User creator = userService.findById(userId);
+        var creator = hrmUserDirectoryService.requireById(userId);
         WorkItem project = workItemRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án có id: " + projectId));
         if (project.getStatus().equals(StatusWork.HOAN_THANH) || project.getStatus().equals(StatusWork.DA_HUY)) {
             throw new NotFoundException("task.create.invalid.state", "Dự án đã hoàn thành hoặc đã hủy nên không thể tạo task");
         }
-        if (!project.getAssigneeId().equals(creator.getId()) && !project.getCreatorId().equals(creator.getId())) {
+        if (!project.getAssigneeId().equals(creator.userId()) && !project.getCreatorId().equals(creator.userId())) {
             throw new NotFoundException("task.create.forbidden", "Bạn không có quyền tạo task trong dự án này!");
         }
 
-        User assignee = userService.findById(request.getAssigneeId());
+        var assignee = hrmUserDirectoryService.requireById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateTaskRequest(request);
 
@@ -137,8 +136,8 @@ public class WorkItemService implements IWorkItemService {
         task.setWorkItemUuid(generateWorkItemUuid());
         task.setParent(project);
         task.setType(WorkItemType.TASK);
-        task.setCreatorId(creator.getId());
-        task.setAssigneeId(assignee.getId());
+        task.setCreatorId(creator.userId());
+        task.setAssigneeId(assignee.userId());
         task.setName(request.getTaskName());
         task.setDescription(request.getDescription());
         task.setStatus(StatusWork.CHUA_BAT_DAU);
@@ -163,13 +162,13 @@ public class WorkItemService implements IWorkItemService {
     }
 
     private WorkItemDetailResponse toWorkItemDetailResponse(WorkItem workItem) {
-        User creator = userService.findById(workItem.getCreatorId());
-        User assignee = userService.findById(workItem.getAssigneeId());
+        var creator = hrmUserDirectoryService.requireById(workItem.getCreatorId());
+        var assignee = hrmUserDirectoryService.requireById(workItem.getAssigneeId());
         return WorkItemDetailResponse.builder()
                 .id(workItem.getId())
                 .workItemUuid(workItem.getWorkItemUuid())
-                .creator(creator.getFullName())
-                .assignee(assignee.getFullName())
+                .creator(creator.fullName())
+                .assignee(assignee.fullName())
                 .name(workItem.getName())
                 .description(workItem.getDescription())
                 .status(workItem.getStatus())
@@ -198,20 +197,20 @@ public class WorkItemService implements IWorkItemService {
     @Transactional
     public void editProject(Long id, WorkItemRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(id);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
-        if (!user.getId().equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(workItem.getCreatorId())) {
             throw new ForbiddenException("project.update.forbidden", "Bạn không phải là chủ của dự án này!");
         }
         if (workItem.getStatus() != StatusWork.CHUA_BAT_DAU) {
             throw new ConflictDataException("project.update.conflict", "Chỉ được sửa khi dự án chưa bắt đầu");
         }
 
-        User newAssignee = userService.findById(request.getAssigneeId());
+        var newAssignee = hrmUserDirectoryService.requireById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateProjectRequest(request);
 
-        workItem.setAssigneeId(newAssignee.getId());
+        workItem.setAssigneeId(newAssignee.userId());
         workItem.setName(request.getName());
         workItem.setDescription(request.getDescription());
         workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
@@ -221,7 +220,7 @@ public class WorkItemService implements IWorkItemService {
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
         if (files != null) {
-            documentService.replaceDocuments(workItem, "PROJECT", files, user.getId(), "pm/projects/" + workItem.getId());
+            documentService.replaceDocuments(workItem, "PROJECT", files, currentUserId, "pm/projects/" + workItem.getId());
         }
 
         if (request.getUserList() != null) {
@@ -234,19 +233,19 @@ public class WorkItemService implements IWorkItemService {
     @Transactional
     public void editTask(Long id, EditTaskRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(id);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
-        if (!user.getId().equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(workItem.getCreatorId())) {
             throw new ForbiddenException("task.update.forbidden", "Bạn không phải là chủ của công việc này!");
         }
         if (workItem.getStatus() != StatusWork.CHUA_BAT_DAU) {
             throw new ConflictDataException("task.update.conflict", "Chỉ được sửa khi công việc chưa bắt đầu");
         }
 
-        User newAssignee = userService.findById(request.getAssigneeId());
+        var newAssignee = hrmUserDirectoryService.requireById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
 
-        workItem.setAssigneeId(newAssignee.getId());
+        workItem.setAssigneeId(newAssignee.userId());
         workItem.setName(request.getName());
         workItem.setDescription(request.getDescription());
         workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
@@ -256,16 +255,16 @@ public class WorkItemService implements IWorkItemService {
         workItem.setUpdatedAt(LocalDateTime.now());
         workItemRepository.save(workItem);
         if (files != null) {
-            documentService.replaceDocuments(workItem, "TASK_GUIDE", files, user.getId(), "pm/tasks/" + workItem.getId() + "/guide");
+            documentService.replaceDocuments(workItem, "TASK_GUIDE", files, currentUserId, "pm/tasks/" + workItem.getId() + "/guide");
         }
     }
 
     @Override
     public void deleteWork(Long id, WorkItemType workType) {
         WorkItem workItem = findById(id);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
-        if (!user.getId().equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(workItem.getCreatorId())) {
             throw new ForbiddenException("work.delete.forbidden", "Bạn không phải là chủ của " + workType.getLabel() + " này!");
         }
         if (!workItem.getStatus().equals(StatusWork.CHUA_BAT_DAU)) {
@@ -286,9 +285,9 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public WorkItem refuseTask(Long taskId, NoteRequest request) {
         WorkItem work = findById(taskId);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
-        if (!user.getId().equals(work.getCreatorId())) {
+        if (!currentUserId.equals(work.getCreatorId())) {
             throw new ForbiddenException("task.refuse.forbidden", "Bạn không phải là người giao nhiệm vụ này!");
         }
         if (!work.getStatus().equals(StatusWork.CHO_DUYET)) {
@@ -304,12 +303,12 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public WorkItem approveTask(Long taskId, ApproveTaskRequest request) {
         WorkItem task = findById(taskId);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
         if (task.getType() != WorkItemType.TASK) {
             throw new NotFoundException("task.not.found", "Không tìm thấy task cần duyệt");
         }
-        if (!user.getId().equals(task.getCreatorId())) {
+        if (!currentUserId.equals(task.getCreatorId())) {
             throw new ForbiddenException("task.approve.forbidden", "Bạn không phải là người giao nhiệm vụ này!");
         }
         if (task.getStatus() != StatusWork.CHO_DUYET) {
@@ -334,13 +333,13 @@ public class WorkItemService implements IWorkItemService {
     }
 
     private TaskDetailResponse taskDetailResponse(WorkItem workItem) {
-        User creator = userService.findById(workItem.getCreatorId());
-        User assignee = userService.findById(workItem.getAssigneeId());
+        var creator = hrmUserDirectoryService.requireById(workItem.getCreatorId());
+        var assignee = hrmUserDirectoryService.requireById(workItem.getAssigneeId());
         return TaskDetailResponse.builder()
                 .id(workItem.getId())
                 .workItemUuid(workItem.getWorkItemUuid())
-                .creator(creator.getFullName())
-                .assignee(assignee.getFullName())
+                .creator(creator.fullName())
+                .assignee(assignee.fullName())
                 .name(workItem.getName())
                 .description(workItem.getDescription())
                 .status(workItem.getStatus())
@@ -362,9 +361,9 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public void submitTask(Long taskId, SubmitTaskRequest request, List<MultipartFile> files) {
         WorkItem workItem = findById(taskId);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
-        if (!user.getId().equals(workItem.getAssigneeId())) {
+        if (!currentUserId.equals(workItem.getAssigneeId())) {
             throw new NotFoundException("work.submit.forbidden", "Bạn không phải là người thực hiện công việc này!");
         }
         if (workItem.getType() != WorkItemType.TASK) {
@@ -380,19 +379,19 @@ public class WorkItemService implements IWorkItemService {
                 workItem,
                 "TASK_SUBMISSION",
                 files,
-                user.getId(),
+                currentUserId,
                 "pm/tasks/" + workItem.getId() + "/submission");
     }
 
     @Override
     public WorkItem extendProject(Long projectId, ExtendProjectRequest request) {
         WorkItem project = findById(projectId);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
         if (project.getType() != WorkItemType.PROJECT) {
             throw new NotFoundException("project.not.found", "Không tìm thấy dự án cần gia hạn");
         }
-        if (!user.getId().equals(project.getCreatorId()) && !user.getId().equals(project.getAssigneeId())) {
+        if (!currentUserId.equals(project.getCreatorId()) && !currentUserId.equals(project.getAssigneeId())) {
             throw new ForbiddenException("project.extend.forbidden", "Bạn không có quyền gia hạn dự án này");
         }
         if (request.getNewEndDate() == null) {
@@ -418,12 +417,12 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public WorkItem completeProject(Long projectId, CompleteProjectRequest request) {
         WorkItem project = findById(projectId);
-        User user = getCurrentUser();
+        Long currentUserId = UserContext.requiredUserId();
 
         if (project.getType() != WorkItemType.PROJECT) {
             throw new NotFoundException("project.not.found", "Không tìm thấy dự án cần kết thúc");
         }
-        if (!user.getId().equals(project.getCreatorId()) && !user.getId().equals(project.getAssigneeId())) {
+        if (!currentUserId.equals(project.getCreatorId()) && !currentUserId.equals(project.getAssigneeId())) {
             throw new ForbiddenException("project.complete.forbidden", "Bạn không có quyền kết thúc dự án này");
         }
         if (project.getStatus() == StatusWork.HOAN_THANH || project.getStatus() == StatusWork.DA_HUY) {
@@ -450,10 +449,6 @@ public class WorkItemService implements IWorkItemService {
     @Override
     public long countTaskByUser(WorkItemType workType, Long projectId, Long userId, StatusWork statusWork) {
         return workItemRepository.countTaskByUser(workType, projectId, userId, statusWork);
-    }
-
-    private User getCurrentUser() {
-        return userService.findById(UserContext.requiredUserId());
     }
 
     private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
