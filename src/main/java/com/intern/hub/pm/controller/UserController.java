@@ -1,10 +1,9 @@
 package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dtos.response.ApiResponseBuilder;
-import com.intern.hub.pm.services.UserService;
+import com.intern.hub.pm.service.impl.UserService;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
-package com.intern.hub.pm.specification;
+package com.intern.hub.pm.repository.specification;
 
 import com.intern.hub.pm.dtos.request.EntityMemberFilterRequest;
-import com.intern.hub.pm.models.EntityMember;
+import com.intern.hub.pm.model.EntityMember;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -17,7 +17,7 @@ public class EntityMemberSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             // name
-            if (filter.getEntityType()!= null) {
+            if (filter.getEntityType() != null) {
                 predicates.add(
                         cb.like(
                                 cb.lower(root.get("entity_type")),

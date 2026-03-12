@@ -1,4 +1,4 @@
-package com.intern.hub.pm.services;
+package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.pm.dtos.request.EditRoleUserRequest;
 import com.intern.hub.pm.dtos.request.UserProjectRequest;
@@ -7,11 +7,12 @@ import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.exceptions.NotFoundException;
-import com.intern.hub.pm.models.EntityMember;
-import com.intern.hub.pm.models.User;
-import com.intern.hub.pm.models.WorkItem;
-import com.intern.hub.pm.repositorys.EntityMemberRepository;
-import com.intern.hub.pm.repositorys.WorkItemRepository;
+import com.intern.hub.pm.model.EntityMember;
+import com.intern.hub.pm.model.User;
+import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.repository.EntityMemberRepository;
+import com.intern.hub.pm.repository.WorkItemRepository;
+import com.intern.hub.pm.service.IEntityMemberService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;

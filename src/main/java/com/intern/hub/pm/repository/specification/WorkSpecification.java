@@ -1,7 +1,7 @@
-package com.intern.hub.pm.specification;
+package com.intern.hub.pm.repository.specification;
 
 import com.intern.hub.pm.dtos.request.WorkFilterRequest;
-import com.intern.hub.pm.models.WorkItem;
+import com.intern.hub.pm.model.WorkItem;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

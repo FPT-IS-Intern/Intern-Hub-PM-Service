@@ -1,7 +1,6 @@
-package com.intern.hub.pm.models;
+package com.intern.hub.pm.model;
 
 import com.intern.hub.pm.enums.Status;
-import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,31 +17,29 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Data
 @Builder
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "entity_members")
-public class EntityMember {
+@Table(name = "documents")
+public class Document {
 
     @Id
     @SnowflakeGenerated
     private Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "entity_type")
-    private WorkItemType entityType;
+    private String entityType;
 
     @ManyToOne
     @JoinColumn(name = "entity_id")
     private WorkItem entityId;
 
-    @Column(name = "user_id")
-    private Long userId;
+    @Column(name = "file_url")
+    private String fileUrl;
 
-    @Column(name = "role")
-    private String role;
+    @Column(name = "file_name")
+    private String fileName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

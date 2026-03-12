@@ -1,8 +1,8 @@
-package com.intern.hub.pm.repositorys;
+package com.intern.hub.pm.repository;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.models.WorkItem;
+import com.intern.hub.pm.model.WorkItem;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,25 +28,25 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSp
     boolean existsByParent_IdAndTypeAndStatusNotIn(Long parentId, WorkItemType type, List<StatusWork> statuses);
 
     @Query("""
-        SELECT COUNT(w)
-        FROM WorkItem w
-        WHERE w.type = :type
-          AND w.parent.id = :parentId
-          AND w.assigneeId = :assigneeId
-          AND w.status <> :deletedStatus
-        """)
+            SELECT COUNT(w)
+            FROM WorkItem w
+            WHERE w.type = :type
+              AND w.parent.id = :parentId
+              AND w.assigneeId = :assigneeId
+              AND w.status <> :deletedStatus
+            """)
     long countTaskByUser(@Param("type") WorkItemType type,
                          @Param("parentId") Long parentId,
                          @Param("assigneeId") Long assigneeId,
                          @Param("deletedStatus") StatusWork deletedStatus);
 
     @Query("""
-        SELECT w.assigneeId, COUNT(w)
-        FROM WorkItem w
-        WHERE w.parent.id = :projectId
-          AND w.type = :type
-          AND w.status <> :deletedStatus
-        GROUP BY w.assigneeId
-        """)
+            SELECT w.assigneeId, COUNT(w)
+            FROM WorkItem w
+            WHERE w.parent.id = :projectId
+              AND w.type = :type
+              AND w.status <> :deletedStatus
+            GROUP BY w.assigneeId
+            """)
     List<Object[]> countTaskByProjectGroupByUser(Long projectId, WorkItemType type, StatusWork deletedStatus);
 }

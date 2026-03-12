@@ -1,4 +1,4 @@
-package com.intern.hub.pm.services;
+package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.pm.dtos.request.EditTaskRequest;
 import com.intern.hub.pm.dtos.request.NoteRequest;
@@ -16,11 +16,11 @@ import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.exceptions.ConflictException;
 import com.intern.hub.pm.exceptions.ForbiddenException;
 import com.intern.hub.pm.exceptions.NotFoundException;
-import com.intern.hub.pm.models.User;
-import com.intern.hub.pm.models.WorkItem;
-import com.intern.hub.pm.repositorys.WorkItemRepository;
-import com.intern.hub.pm.specification.WorkSpecification;
-import com.intern.hub.pm.utils.UserContext;
+import com.intern.hub.pm.model.User;
+import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.repository.WorkItemRepository;
+import com.intern.hub.pm.repository.specification.WorkSpecification;
+import com.intern.hub.pm.service.IWorkItemService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

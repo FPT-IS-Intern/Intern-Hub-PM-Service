@@ -1,11 +1,11 @@
-package com.intern.hub.pm.services;
+package com.intern.hub.pm.service;
 
 import com.intern.hub.pm.dtos.request.*;
 import com.intern.hub.pm.dtos.response.TaskDetailResponse;
 import com.intern.hub.pm.dtos.response.WorkItemDetailResponse;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.models.WorkItem;
+import com.intern.hub.pm.model.WorkItem;
 
 import java.util.List;
 
@@ -42,5 +42,5 @@ public interface IWorkItemService {
             Long projectId,
             Long userId,
             StatusWork statusWork
-            );
+    );
 }

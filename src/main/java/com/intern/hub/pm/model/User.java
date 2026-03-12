@@ -1,4 +1,4 @@
-package com.intern.hub.pm.models;
+package com.intern.hub.pm.model;
 
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import jakarta.persistence.Column;
@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Data
 @Builder
 @Entity
 @NoArgsConstructor

@@ -1,10 +1,10 @@
-package com.intern.hub.pm.services;
+package com.intern.hub.pm.service;
 
 import com.intern.hub.pm.dtos.request.EditRoleUserRequest;
 import com.intern.hub.pm.dtos.response.ProjectUserResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.models.EntityMember;
+import com.intern.hub.pm.model.EntityMember;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 

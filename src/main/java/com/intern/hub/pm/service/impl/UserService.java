@@ -1,10 +1,10 @@
-package com.intern.hub.pm.services;
+package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.pm.dtos.response.UserResponse;
 import com.intern.hub.pm.exceptions.NotFoundException;
-import com.intern.hub.pm.models.User;
-import com.intern.hub.pm.repositorys.UserRepository;
-import com.intern.hub.pm.utils.UserContext;
+import com.intern.hub.pm.model.User;
+import com.intern.hub.pm.repository.UserRepository;
+import com.intern.hub.pm.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

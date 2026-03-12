@@ -1,4 +1,4 @@
-package com.intern.hub.pm.models;
+package com.intern.hub.pm.model;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
@@ -19,7 +19,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Data
 @Builder
 @Entity
 @NoArgsConstructor
