@@ -10,7 +10,7 @@ import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoCon
 @EnableSecurity
 @EnableGlobalExceptionHandler
 public class InternHubPMApplication {
-
+    // Test
     public static void main(String[] args) {
         SpringApplication.run(InternHubPMApplication.class, args);
     }
