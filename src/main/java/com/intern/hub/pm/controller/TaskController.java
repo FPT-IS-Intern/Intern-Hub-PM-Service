@@ -72,7 +72,7 @@ public class TaskController {
     ) {
         filter.setType(WorkItemType.TASK);
         filter.setParentId(projectId);
-        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
+        filter.setStatusNot(String.valueOf(StatusWork.CANCELED));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
         return ResponseApi.ok(toPageResponse(pageResult));
     }
@@ -133,7 +133,7 @@ public class TaskController {
     ) {
         filter.setType(WorkItemType.TASK);
         filter.setAssignee(String.valueOf(UserContext.requiredUserId()));
-        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
+        filter.setStatusNot(String.valueOf(StatusWork.CANCELED));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
         return ResponseApi.ok(toPageResponse(pageResult));
     }

@@ -74,7 +74,7 @@ public class EntityMemberService implements IEntityMemberService {
         );
 
         List<Object[]> results =
-                workItemRepository.countTaskByProjectGroupByUser(projectId, WorkItemType.TASK, StatusWork.DA_HUY);
+                workItemRepository.countTaskByProjectGroupByUser(projectId, WorkItemType.TASK, StatusWork.CANCELED);
 
         Map<Long, Long> taskCountMap = results.stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
@@ -115,7 +115,7 @@ public class EntityMemberService implements IEntityMemberService {
 
         Optional<WorkItem> workItemOfUser = workItemRepository.findByParentAndAssigneeId(workItem, entityMember.getUserId());
 
-        if (workItemOfUser.isPresent() && workItemOfUser.get().getStatus() != StatusWork.DA_HUY) {
+        if (workItemOfUser.isPresent() && workItemOfUser.get().getStatus() != StatusWork.CANCELED) {
             throw new NotFoundException("project.member.delete.forbidden", "User này có dự án đang làm nên không xóa được!");
         }
 

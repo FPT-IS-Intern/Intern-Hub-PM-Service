@@ -55,7 +55,7 @@ public class ProjectController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         filter.setType(WorkItemType.PROJECT);
-        filter.setStatusNot(String.valueOf(StatusWork.DA_HUY));
+        filter.setStatusNot(String.valueOf(StatusWork.CANCELED));
         Page<WorkItemResponse> pageResult = workItemService.getAll(filter, page, size);
         return ResponseApi.ok(toPageResponse(pageResult));
     }

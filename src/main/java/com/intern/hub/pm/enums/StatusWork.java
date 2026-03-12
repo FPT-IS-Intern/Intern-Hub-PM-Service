@@ -1,13 +1,13 @@
 package com.intern.hub.pm.enums;
 
 public enum StatusWork {
-    CHUA_BAT_DAU("Chưa bắt đầu"),
-    DANG_THUC_HIEN("Đang thực hiện"),
-    TRE_HAN("Trễ hạn"),
-    CAN_CHINH_SUA("Cần chỉnh sửa"),
-    CHO_DUYET("Chờ duyệt"),
-    HOAN_THANH("Hoàn thành"),
-    DA_HUY("Đã hủy");
+    NOT_STARTED("Chưa bắt đầu"),
+    IN_PROGRESS("Đang thực hiện"),
+    OVERDUE("Trễ hạn"),
+    NEEDS_REVISION("Cần chỉnh sửa"),
+    PENDING_REVIEW("Chờ duyệt"),
+    COMPLETED("Hoàn thành"),
+    CANCELED("Đã hủy");
 
     private final String label;
 
