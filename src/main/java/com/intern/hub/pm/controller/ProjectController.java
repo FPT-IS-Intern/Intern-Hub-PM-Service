@@ -123,7 +123,7 @@ public class ProjectController {
     @Authenticated
     @Operation(
             summary = "Xóa user trong dự án",
-            description = "API dùng để xóa user trong dự án (project, module)."
+            description = "API dùng để xóa user trong dự án."
     )
     public ResponseApi<?> deleteUserProject(
             @PathVariable Long memberId

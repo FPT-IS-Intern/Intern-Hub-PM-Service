@@ -2,17 +2,17 @@
 
 ## Overview
 
-PM Service la backend quan ly du an, module, task va thanh vien trong he thong Intern Hub.
-Service tap trung vao nghiep vu quan ly cong viec, giao viec, nop ket qua va duyet ket qua.
+PM Service la backend quan ly du an, task va thanh vien trong he thong Intern Hub.
+Service tap trung vao nghiep vu giao viec, nop ket qua, duyet task, gia han va ket thuc du an.
 
 ## Main Features
 
-- Quan ly project, module, task
-- Gan thanh vien vao project va module
+- Quan ly project va task
+- Gan thanh vien vao project
 - Theo doi trang thai cong viec
-- PIN verification cho thao tac nhay cam
-- JWT/Spring Security bao ve API
-- Redis ho tro OTP/PIN workflow
+- Upload tai lieu va bai nop qua DMS
+- Lay thong tin nguoi dung tu HRM internal
+- Security thong qua security starter
 
 ## Technology Stack
 
@@ -20,24 +20,23 @@ Service tap trung vao nghiep vu quan ly cong viec, giao viec, nop ket qua va duy
 - Spring Boot
 - Spring Security
 - Spring Data JPA
+- Spring Cloud OpenFeign
 - PostgreSQL
-- Redis
 - Maven
 
 ## Project Structure
 
 ```text
 src/main/java/com/intern/hub/pm
-├── configs
-├── controllers
-├── dtos
+├── config
+├── controller
+├── dto
 ├── enums
-├── exceptions
+├── feign
 ├── generator
-├── models
-├── repositorys
-├── services
-├── specification
+├── model
+├── repository
+├── service
 └── utils
 ```
 
