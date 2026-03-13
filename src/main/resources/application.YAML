@@ -59,7 +59,7 @@ api:
   prefix: /pm
 
 security:
-  internal-secret: ${INTERNAL_SECRET_KEY:${INTERNAL_SECRET:}}
+  internal-secret: ${SECURITY_INTERNAL_SECRET}
   internal-path-prefix: /pm/internal/
 
 common:
