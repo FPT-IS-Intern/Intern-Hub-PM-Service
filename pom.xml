@@ -21,7 +21,6 @@
         <internhub.security.version>1.0.6</internhub.security.version>
         <springdoc.version>3.0.1</springdoc.version>
         <jib.version>3.5.1</jib.version>
-        <jib.to.image>harbor.fptintern.xyz/internhub-v2/dev/pm:latest</jib.to.image>
     </properties>
 
     <dependencyManagement>

@@ -43,26 +43,94 @@ Chi tiết: lấy danh sách task được giao cho user hiện tại qua `my-ta
 - Document: metadata file gắn với project/task/submission, object key lưu trên DMS.
 
 **API nghiệp vụ (tóm tắt)**
-- `GET /projects`: danh sách dự án.
-- `POST /projects` (multipart): tạo dự án + tài liệu.
-- `GET /projects/{projectId}`: chi tiết dự án.
-- `PUT /projects/{projectId}` (multipart): cập nhật dự án + tài liệu.
-- `DELETE /projects/{projectId}`: hủy dự án.
-- `POST /projects/{projectId}/users`: thêm thành viên vào dự án.
-- `GET /projects/{projectId}/users`: danh sách thành viên dự án.
-- `PUT /projects/users/{memberId}`: sửa vai trò thành viên.
-- `DELETE /projects/users/{memberId}`: xóa thành viên khỏi dự án.
-- `POST /projects/{projectId}/tasks` (multipart): tạo task + tài liệu hướng dẫn.
-- `GET /projects/{projectId}/tasks`: danh sách task theo dự án.
-- `GET /tasks/{taskId}`: chi tiết task.
-- `PUT /tasks/{taskId}` (multipart): cập nhật task + tài liệu hướng dẫn.
-- `DELETE /tasks/{taskId}`: hủy task.
-- `POST /tasks/{taskId}/submit` (multipart): nộp kết quả task.
-- `POST /tasks/{taskId}/approve`: duyệt task.
-- `POST /tasks/{taskId}/refuse`: yêu cầu làm lại task.
-- `GET /my-tasks`: danh sách task của user hiện tại.
-- `POST /projects/{projectId}/extend`: gia hạn dự án.
-- `POST /projects/{projectId}/complete`: kết thúc dự án.
+- Base path public API: `/pm`
+- `GET /pm/projects`: danh sách dự án.
+- `POST /pm/projects` (multipart): tạo dự án + tài liệu charter.
+- `GET /pm/projects/{projectId}`: chi tiết dự án.
+- `PUT /pm/projects/{projectId}` (multipart): cập nhật dự án + thay bộ tài liệu charter nếu có file mới.
+- `DELETE /pm/projects/{projectId}`: hủy mềm dự án.
+- `POST /pm/projects/{projectId}/users`: thêm thành viên vào dự án.
+- `GET /pm/projects/{projectId}/users`: danh sách thành viên dự án.
+- `PUT /pm/projects/users/{memberId}`: sửa vai trò thành viên.
+- `DELETE /pm/projects/users/{memberId}`: xóa mềm thành viên khỏi dự án.
+- `POST /pm/projects/{projectId}/tasks` (multipart): tạo task + tài liệu hướng dẫn.
+- `GET /pm/projects/{projectId}/tasks`: danh sách task theo dự án.
+- `GET /pm/tasks/{taskId}`: chi tiết task.
+- `PUT /pm/tasks/{taskId}` (multipart): cập nhật task + thay bộ tài liệu hướng dẫn nếu có file mới.
+- `DELETE /pm/tasks/{taskId}`: hủy mềm task.
+- `POST /pm/tasks/{taskId}/submit` (multipart): nộp kết quả task + thay bộ file submission cũ bằng bộ mới nhất.
+- `POST /pm/tasks/{taskId}/approve`: duyệt task.
+- `POST /pm/tasks/{taskId}/refuse`: yêu cầu làm lại task.
+- `GET /pm/my-tasks`: danh sách task của user hiện tại.
+- `POST /pm/projects/{projectId}/extend`: gia hạn dự án.
+- `POST /pm/projects/{projectId}/complete`: kết thúc dự án.
+
+**Xác thực và phân quyền**
+- Public API dùng `Bearer JWT`.
+- Internal API dùng header `X-Internal-Secret` qua security starter và Feign configuration.
+- Chỉ chủ dự án mới được sửa, hủy, gia hạn, hoàn thành dự án và quản lý thành viên dự án.
+- Chỉ người tạo task mới được sửa, hủy, duyệt hoặc yêu cầu làm lại task.
+- Chỉ người được giao task mới được nộp kết quả task.
+
+**Cách gửi multipart**
+- Với `POST/PUT /pm/projects...` và `POST/PUT /pm/tasks...`, body là `multipart/form-data`.
+- Part `request`: JSON chứa dữ liệu nghiệp vụ.
+- Part `files`: danh sách file tài liệu, có thể bỏ trống.
+- Với `POST /pm/tasks/{taskId}/submit`:
+  - field `deliverableLink`: link kết quả, không bắt buộc
+  - field `files`: danh sách file submission, không bắt buộc
+
+**Ví dụ request JSON**
+- Project `request`:
+```json
+{
+  "name": "Du an A",
+  "description": "Mo ta du an",
+  "note": "Ghi chu",
+  "status": "NOT_STARTED",
+  "budgetToken": 1000,
+  "rewardToken": 200,
+  "assigneeId": 123,
+  "deliverableDescription": "Tai lieu ban giao",
+  "deliverableLink": "https://example.com",
+  "endAt": 1770000000000
+}
+```
+- Task `request`:
+```json
+{
+  "name": "Task 1",
+  "description": "Mo ta task",
+  "note": "Ghi chu",
+  "status": "NOT_STARTED",
+  "rewardToken": 100,
+  "assigneeId": 123,
+  "deliverableDescription": "Ket qua can nop",
+  "deliverableLink": "https://example.com"
+}
+```
+- Approve/refuse:
+```json
+{
+  "reviewComment": "Can bo sung bang chung",
+  "recoveredToken": 50
+}
+```
+- Extend project:
+```json
+{
+  "endAt": 1775000000000,
+  "reason": "Can them thoi gian"
+}
+```
+- Complete project:
+```json
+{
+  "completionComment": "Hoan thanh dung ke hoach",
+  "recoveredToken": 50,
+  "bonusToken": 100
+}
+```
 
 **Cấu hình liên quan nghiệp vụ**
 - DB schema: `ih_pm`.

@@ -1,6 +1,9 @@
 package com.intern.hub.pm.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OpenApiCustomizer;
@@ -13,6 +16,15 @@ public class SwaggerConfig {
 
     @Value("${gateway-url:http://localhost:8765}")
     private String gatewayUrl;
+
+    @Bean
+    public OpenAPI openAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("API Quản Lý Dự Án Intern Hub")
+                        .description("Tài liệu API cho nghiệp vụ dự án, thành viên dự án, task và workflow nộp bài"))
+                .addSecurityItem(new SecurityRequirement().addList("Bearer"));
+    }
 
     @Bean
     public OpenApiCustomizer openApiCustomizer() {
