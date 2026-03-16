@@ -1,7 +1,7 @@
 package com.intern.hub.pm.repository;
 
-import com.intern.hub.pm.model.document.Document;
 import com.intern.hub.pm.enums.Status;
+import com.intern.hub.pm.model.document.Document;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

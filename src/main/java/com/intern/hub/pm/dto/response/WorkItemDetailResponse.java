@@ -1,7 +1,7 @@
 package com.intern.hub.pm.dto.response;
 
-import com.intern.hub.pm.enums.StatusWork;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.intern.hub.pm.enums.StatusWork;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;

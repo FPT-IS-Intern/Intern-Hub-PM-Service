@@ -1,9 +1,7 @@
 package com.intern.hub.pm.model.team;
 
-import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
-import com.intern.hub.pm.model.project.Project;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

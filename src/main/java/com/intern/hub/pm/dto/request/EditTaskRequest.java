@@ -1,6 +1,5 @@
 package com.intern.hub.pm.dto.request;
 
-import com.intern.hub.pm.enums.StatusWork;
 import lombok.Data;
 
 import java.time.LocalDateTime;

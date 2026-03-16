@@ -2,7 +2,10 @@ package com.intern.hub.pm.model.document;
 
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

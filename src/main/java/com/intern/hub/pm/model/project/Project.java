@@ -6,7 +6,10 @@ import com.intern.hub.pm.model.AuditEntity;
 import com.intern.hub.pm.model.document.Document;
 import com.intern.hub.pm.model.team.Team;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
