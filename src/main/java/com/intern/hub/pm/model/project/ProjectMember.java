@@ -1,6 +1,6 @@
 package com.intern.hub.pm.model.project;
 
-import com.intern.hub.pm.enums.Status;
+import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
 import jakarta.persistence.*;

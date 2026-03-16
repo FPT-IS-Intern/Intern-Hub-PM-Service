@@ -1,6 +1,6 @@
 package com.intern.hub.pm.model.project;
 
-import com.intern.hub.pm.enums.StatusWork;
+import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
 import com.intern.hub.pm.model.document.Document;
