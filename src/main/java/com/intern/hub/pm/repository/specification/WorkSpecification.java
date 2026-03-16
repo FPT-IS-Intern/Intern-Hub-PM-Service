@@ -1,7 +1,7 @@
 package com.intern.hub.pm.repository.specification;
 
 import com.intern.hub.pm.dto.request.WorkFilterRequest;
-import com.intern.hub.pm.model.Project;
+import com.intern.hub.pm.model.project.Project;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

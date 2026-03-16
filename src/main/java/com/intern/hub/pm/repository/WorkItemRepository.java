@@ -2,7 +2,7 @@ package com.intern.hub.pm.repository;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.model.Project;
+import com.intern.hub.pm.model.project.Project;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

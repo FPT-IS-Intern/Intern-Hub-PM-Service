@@ -1,9 +1,10 @@
-package com.intern.hub.pm.model;
+package com.intern.hub.pm.model.project;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
-import com.intern.hub.pm.model.common.Document;
-import com.intern.hub.pm.model.common.EntityMember;
+import com.intern.hub.pm.model.AuditEntity;
+import com.intern.hub.pm.model.document.Document;
+import com.intern.hub.pm.model.team.Team;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Project {
+public class Project extends AuditEntity {
 
     /**
      * =======================================================
@@ -28,8 +29,8 @@ public class Project {
     @SnowflakeGenerated
     Long id;
 
-    @Column(name = "work_item_uuid", nullable = false)
-    String workItemUuid;
+    @Column(name = "project_uuid", nullable = false)
+    String projectUUID;
 
     /**
      * =======================================================
@@ -87,10 +88,6 @@ public class Project {
 
     String deliverableLink;
 
-    @OneToMany
-    @Column(name = "assignee_id", nullable = false)
-    List<Document> deliverableDocuments;
-
     /**
      * =======================================================
      * Relationship
@@ -98,6 +95,9 @@ public class Project {
      */
 
     @OneToMany(mappedBy = "project")
-    List<EntityMember> entityMembers;
+    List<ProjectMember> projectMembers;
+
+    @OneToMany(mappedBy = "project")
+    List<Team> projectTeams;
 
 }

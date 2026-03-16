@@ -1,8 +1,9 @@
-package com.intern.hub.pm.model;
+package com.intern.hub.pm.model.team;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
-import com.intern.hub.pm.model.common.Document;
+import com.intern.hub.pm.model.AuditEntity;
+import com.intern.hub.pm.model.document.Document;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -13,12 +14,12 @@ import lombok.experimental.FieldDefaults;
 import java.util.List;
 
 @Entity
-@Table(name = "teams")
+@Table(name = "tasks")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Team {
+public class Task extends AuditEntity {
 
     /**
      * =======================================================
@@ -30,8 +31,8 @@ public class Team {
     @SnowflakeGenerated
     Long id;
 
-    @Column(name = "work_item_uuid", nullable = false)
-    String workItemUuid;
+    @Column(name = "task_uuid", nullable = false)
+    String taskUUID;
 
     /**
      * =======================================================
@@ -50,9 +51,6 @@ public class Team {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     StatusWork status;
-
-    @Column(nullable = false)
-    Long budgetToken;
 
     @Column(nullable = false)
     Long rewardToken;
@@ -77,7 +75,7 @@ public class Team {
 
     @OneToMany
     @Column(name = "assignee_id", nullable = false)
-    List<Document> teamCharterDocuments;
+    List<Document> taskCharterDocument;
 
     /**
      * =======================================================
@@ -89,8 +87,13 @@ public class Team {
 
     String deliverableLink;
 
-    @OneToMany
-    @Column(name = "assignee_id", nullable = false)
-    List<Document> deliverableDocuments;
+    /**
+     * =======================================================
+     * Relationship
+     * =======================================================
+     */
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    Team team;
 
 }

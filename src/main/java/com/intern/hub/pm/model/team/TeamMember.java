@@ -1,30 +1,20 @@
-package com.intern.hub.pm.model.common;
+package com.intern.hub.pm.model.team;
 
 import com.intern.hub.pm.enums.Status;
-import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
-import com.intern.hub.pm.model.Project;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.intern.hub.pm.model.AuditEntity;
+import com.intern.hub.pm.model.project.Project;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Builder
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "entity_members")
-public class EntityMember {
+@Table(name = "team_members")
+public class TeamMember extends AuditEntity {
 
     /**
      * =======================================================
@@ -44,12 +34,6 @@ public class EntityMember {
 
     private Long userId;
 
-    private String role;
-
-    @Enumerated(EnumType.STRING)
-    private Status status;
-
-
     /**
      * =======================================================
      * Relationship
@@ -57,7 +41,7 @@ public class EntityMember {
      */
 
     @ManyToOne
-    @JoinColumn(name = "project_id")
-    Project project;
+    @JoinColumn(name = "team_id")
+    Team team;
 
 }

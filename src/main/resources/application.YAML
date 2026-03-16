@@ -69,7 +69,7 @@ common:
 services:
   dms:
     url: ${DMS_SERVICE_URL:http://localhost:8084}
-    system-actor-id: ${DMS_SYSTEM_ACTOR_ID:0}
+
   hrm:
     url: ${HRM_SERVICE_URL:http://localhost:8081}
 
