@@ -6,6 +6,8 @@ import com.intern.hub.pm.model.AuditEntity;
 import com.intern.hub.pm.model.document.Document;
 import com.intern.hub.pm.model.project.Project;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +21,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Team extends AuditEntity {
 
@@ -77,8 +81,8 @@ public class Team extends AuditEntity {
      * =======================================================
      */
 
-    @OneToMany
-    @Column(name = "assignee_id", nullable = false)
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entity_id", referencedColumnName = "id", insertable = false, updatable = false)
     List<Document> teamCharterDocuments;
 
     /**

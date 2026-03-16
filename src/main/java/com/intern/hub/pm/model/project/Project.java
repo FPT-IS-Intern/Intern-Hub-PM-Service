@@ -5,7 +5,10 @@ import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
 import com.intern.hub.pm.model.document.Document;
 import com.intern.hub.pm.model.team.Team;
+import com.intern.hub.pm.model.team.Task;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +22,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Project extends AuditEntity {
 
@@ -77,8 +82,8 @@ public class Project extends AuditEntity {
      * =======================================================
      */
 
-    @OneToMany
-    @Column(name = "assignee_id", nullable = false)
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entity_id", referencedColumnName = "id", insertable = false, updatable = false)
     List<Document> projectCharterDocuments;
 
     /**
@@ -91,6 +96,16 @@ public class Project extends AuditEntity {
 
     String deliverableLink;
 
+    Long endAt;
+
+    String extensionReason;
+
+    String completionComment;
+
+    Long recoveredToken;
+
+    Long bonusToken;
+
     /**
      * =======================================================
      * Relationship
@@ -102,5 +117,8 @@ public class Project extends AuditEntity {
 
     @OneToMany(mappedBy = "project")
     List<Team> projectTeams;
+
+    @OneToMany(mappedBy = "project")
+    List<Task> tasks;
 
 }

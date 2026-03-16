@@ -4,12 +4,16 @@ import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Entity
@@ -17,6 +21,8 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Document extends AuditEntity {
 
@@ -36,8 +42,10 @@ public class Document extends AuditEntity {
      * =======================================================
      */
 
+    @Enumerated(EnumType.STRING)
     DocumentType documentType;
 
+    @Enumerated(EnumType.STRING)
     DocumentScope documentScope;
 
     Long entityId;
