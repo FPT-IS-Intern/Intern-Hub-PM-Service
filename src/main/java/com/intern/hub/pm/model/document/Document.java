@@ -48,6 +48,7 @@ public class Document extends AuditEntity {
     @Enumerated(EnumType.STRING)
     DocumentScope documentScope;
 
+    @Column(name = "entity_id")
     Long entityId;
 
     @Column(name = "file_url")
