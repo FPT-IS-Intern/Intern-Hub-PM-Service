@@ -31,6 +31,10 @@ public class InternHubPMApplication {
         String envInternalSecretKey = System.getenv("INTERNAL_SECRET_KEY");
         String envInternalSecret = System.getenv("INTERNAL_SECRET");
         String propertyInternalSecret = environment.getProperty("security.internal-secret");
+        String envDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL");
+        String envDatasourceUsername = System.getenv("SPRING_DATASOURCE_USERNAME");
+        String propertyDatasourceUrl = environment.getProperty("spring.datasource.url");
+        String propertyDatasourceUsername = environment.getProperty("spring.datasource.username");
 
         List<String> matchingSources = new ArrayList<>();
         for (PropertySource<?> propertySource : environment.getPropertySources()) {
@@ -38,17 +42,25 @@ public class InternHubPMApplication {
                 for (String propertyName : enumerablePropertySource.getPropertyNames()) {
                     if ("security.internal-secret".equals(propertyName)
                             || "INTERNAL_SECRET_KEY".equals(propertyName)
-                            || "INTERNAL_SECRET".equals(propertyName)) {
+                            || "INTERNAL_SECRET".equals(propertyName)
+                            || "spring.datasource.url".equals(propertyName)
+                            || "spring.datasource.username".equals(propertyName)
+                            || "SPRING_DATASOURCE_URL".equals(propertyName)
+                            || "SPRING_DATASOURCE_USERNAME".equals(propertyName)) {
                         matchingSources.add(propertySource.getName() + "=" + mask(enumerablePropertySource.getProperty(propertyName)));
                     }
                 }
             }
         }
 
-        log.info("Startup config check: INTERNAL_SECRET_KEY={}, INTERNAL_SECRET={}, security.internal-secret={}, sources={}",
+        log.info("Startup config check: INTERNAL_SECRET_KEY={}, INTERNAL_SECRET={}, security.internal-secret={}, SPRING_DATASOURCE_URL={}, SPRING_DATASOURCE_USERNAME={}, spring.datasource.url={}, spring.datasource.username={}, sources={}",
                 mask(envInternalSecretKey),
                 mask(envInternalSecret),
                 mask(propertyInternalSecret),
+                mask(envDatasourceUrl),
+                mask(envDatasourceUsername),
+                mask(propertyDatasourceUrl),
+                mask(propertyDatasourceUsername),
                 matchingSources.isEmpty() ? "[]" : matchingSources);
     }
 
