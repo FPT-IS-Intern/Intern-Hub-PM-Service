@@ -7,8 +7,8 @@ import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.library.common.exception.NotFoundException;
-import com.intern.hub.pm.model.EntityMember;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.common.EntityMember;
+import com.intern.hub.pm.model.Project;
 import com.intern.hub.pm.repository.EntityMemberRepository;
 import com.intern.hub.pm.repository.WorkItemRepository;
 import com.intern.hub.pm.service.IEntityMemberService;
@@ -36,7 +36,7 @@ public class EntityMemberService implements IEntityMemberService {
 
     @Transactional
     public void saveListUserProject(Long id, List<UserProjectRequest> requests) {
-        WorkItem workItem = workItemRepository.findById(id)
+        Project project = workItemRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án id: " + id));
 
         for (UserProjectRequest req : requests) {
@@ -49,7 +49,7 @@ public class EntityMemberService implements IEntityMemberService {
 
             EntityMember e = new EntityMember();
             e.setEntityType(WorkItemType.PROJECT);
-            e.setEntityId(workItem);
+            e.setEntityId(project);
             e.setUserId(user.userId());
             e.setRole(req.getRole());
             e.setStatus(Status.ACTIVE);
@@ -61,7 +61,7 @@ public class EntityMemberService implements IEntityMemberService {
 
     @Override
     public Page<ProjectUserResponse> projectUserList(Long projectId, WorkItemType workItemType, int page, int size) {
-        WorkItem project = workItemRepository.findById(projectId)
+        Project project = workItemRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án id: " + projectId));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -110,10 +110,10 @@ public class EntityMemberService implements IEntityMemberService {
     public void deleteUserOfProject(Long id) throws NotFoundException {
         EntityMember entityMember = findById(id);
 
-        WorkItem workItem = workItemRepository.findById(entityMember.getEntityId().getId())
+        Project project = workItemRepository.findById(entityMember.getEntityId().getId())
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án có id: " + id));
 
-        Optional<WorkItem> workItemOfUser = workItemRepository.findByParentAndAssigneeId(workItem, entityMember.getUserId());
+        Optional<Project> workItemOfUser = workItemRepository.findByParentAndAssigneeId(project, entityMember.getUserId());
 
         if (workItemOfUser.isPresent() && workItemOfUser.get().getStatus() != StatusWork.CANCELED) {
             throw new NotFoundException("project.member.delete.forbidden", "User này có dự án đang làm nên không xóa được!");

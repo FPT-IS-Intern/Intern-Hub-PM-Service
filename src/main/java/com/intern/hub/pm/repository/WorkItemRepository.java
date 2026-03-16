@@ -2,7 +2,7 @@ package com.intern.hub.pm.repository;
 
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.Project;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,15 +13,15 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSpecificationExecutor<WorkItem> {
+public interface WorkItemRepository extends JpaRepository<Project, Long>, JpaSpecificationExecutor<Project> {
 
-    Page<WorkItem> findByType(WorkItemType type, Pageable pageable);
+    Page<Project> findByType(WorkItemType type, Pageable pageable);
 
-    Page<WorkItem> findByParentIdAndType(Long parentId, WorkItemType type, Pageable pageable);
+    Page<Project> findByParentIdAndType(Long parentId, WorkItemType type, Pageable pageable);
 
-    Optional<WorkItem> findByParentAndAssigneeId(WorkItem parentId, Long assigneeId);
+    Optional<Project> findByParentAndAssigneeId(Project parentId, Long assigneeId);
 
-    List<WorkItem> findByParent_IdAndTypeAndStatus(Long parentId, WorkItemType type, StatusWork status);
+    List<Project> findByParent_IdAndTypeAndStatus(Long parentId, WorkItemType type, StatusWork status);
 
     boolean existsByParent_IdAndTypeAndStatus(Long parentId, WorkItemType type, StatusWork status);
 
@@ -31,7 +31,7 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSp
 
     @Query("""
             SELECT COUNT(w)
-            FROM WorkItem w
+            FROM Project w
             WHERE w.type = :type
               AND w.parent.id = :parentId
               AND w.assigneeId = :assigneeId
@@ -44,7 +44,7 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSp
 
     @Query("""
             SELECT w.assigneeId, COUNT(w)
-            FROM WorkItem w
+            FROM Project w
             WHERE w.parent.id = :projectId
               AND w.type = :type
               AND w.status <> :deletedStatus

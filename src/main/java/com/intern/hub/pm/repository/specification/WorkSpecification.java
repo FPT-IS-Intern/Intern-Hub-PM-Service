@@ -1,7 +1,7 @@
 package com.intern.hub.pm.repository.specification;
 
 import com.intern.hub.pm.dto.request.WorkFilterRequest;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.Project;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -10,7 +10,7 @@ import java.util.List;
 
 public class WorkSpecification {
 
-    public static Specification<WorkItem> filter(WorkFilterRequest filter) {
+    public static Specification<Project> filter(WorkFilterRequest filter) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 

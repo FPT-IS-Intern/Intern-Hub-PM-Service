@@ -4,7 +4,7 @@ import com.intern.hub.pm.dto.request.EditRoleUserRequest;
 import com.intern.hub.pm.dto.response.ProjectUserResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.model.EntityMember;
+import com.intern.hub.pm.model.common.EntityMember;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 

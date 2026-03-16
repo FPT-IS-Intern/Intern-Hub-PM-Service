@@ -5,8 +5,8 @@ import com.intern.hub.library.common.exception.InternalErrorException;
 import com.intern.hub.pm.dto.response.DocumentResponse;
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.feign.DmsInternalFeignClient;
-import com.intern.hub.pm.model.Document;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.common.Document;
+import com.intern.hub.pm.model.Project;
 import com.intern.hub.pm.repository.DocumentRepository;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class DocumentService {
     }
 
     public void replaceDocuments(
-            WorkItem workItem,
+            Project project,
             String entityType,
             List<MultipartFile> files,
             Long actorId,
@@ -51,12 +51,12 @@ public class DocumentService {
         if (files == null) {
             return;
         }
-        deleteDocuments(workItem.getId(), entityType, actorId);
-        saveDocuments(workItem, entityType, files, actorId, destinationPath);
+        deleteDocuments(project.getId(), entityType, actorId);
+        saveDocuments(project, entityType, files, actorId, destinationPath);
     }
 
     public void saveDocuments(
-            WorkItem workItem,
+            Project project,
             String entityType,
             List<MultipartFile> files,
             Long actorId,
@@ -70,7 +70,7 @@ public class DocumentService {
             String objectKey = uploadToDms(file, destinationPath, actorId);
             Document document = Document.builder()
                     .entityType(entityType)
-                    .entityId(workItem)
+                    .entityId(project)
                     .fileName(file.getOriginalFilename())
                     .fileUrl(objectKey)
                     .status(Status.ACTIVE)

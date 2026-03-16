@@ -1,8 +1,9 @@
-package com.intern.hub.pm.model;
+package com.intern.hub.pm.model.common;
 
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
+import com.intern.hub.pm.model.Project;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,37 +21,43 @@ import java.time.LocalDateTime;
 
 @Builder
 @Entity
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "entity_members")
 public class EntityMember {
 
+    /**
+     * =======================================================
+     * ENTITY ID
+     * =======================================================
+     */
+
     @Id
     @SnowflakeGenerated
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "entity_type")
-    private WorkItemType entityType;
+    /**
+     * =======================================================
+     * ENTITY METADATA
+     * =======================================================
+     */
 
-    @ManyToOne
-    @JoinColumn(name = "entity_id")
-    private WorkItem entityId;
-
-    @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "role")
     private String role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
     private Status status;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    /**
+     * =======================================================
+     * Relationship
+     * =======================================================
+     */
+
+    @ManyToOne
+    @JoinColumn(name = "project_id")
+    Project project;
+
 }

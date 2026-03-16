@@ -1,29 +1,24 @@
-package com.intern.hub.pm.model;
+package com.intern.hub.pm.model.common;
 
 import com.intern.hub.pm.enums.Status;
 import com.intern.hub.pm.generator.SnowflakeGenerated;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.intern.hub.pm.model.Project;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 @Entity
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "documents")
 public class Document {
+
 
     @Id
     @SnowflakeGenerated
@@ -34,7 +29,7 @@ public class Document {
 
     @ManyToOne
     @JoinColumn(name = "entity_id")
-    private WorkItem entityId;
+    private Project entityId;
 
     @Column(name = "file_url")
     private String fileUrl;
@@ -51,4 +46,5 @@ public class Document {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 }

@@ -19,7 +19,7 @@ import com.intern.hub.pm.enums.WorkItemType;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.library.common.exception.ForbiddenException;
 import com.intern.hub.library.common.exception.NotFoundException;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.Project;
 import com.intern.hub.pm.repository.WorkItemRepository;
 import com.intern.hub.pm.repository.specification.WorkSpecification;
 import com.intern.hub.pm.service.IWorkItemService;
@@ -48,33 +48,33 @@ public class WorkItemService implements IWorkItemService {
     private final EntityMemberService entityMemberService;
     private final DocumentService documentService;
 
-    public Page<WorkItem> getProjects(Pageable pageable) {
+    public Page<Project> getProjects(Pageable pageable) {
         return workItemRepository.findByType(WorkItemType.PROJECT, pageable);
     }
 
-    public Page<WorkItem> getTasks(Long projectId, Pageable pageable) {
+    public Page<Project> getTasks(Long projectId, Pageable pageable) {
         return workItemRepository.findByParentIdAndType(projectId, WorkItemType.TASK, pageable);
     }
 
     public Page<WorkItemResponse> getAll(WorkFilterRequest filter, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Specification<WorkItem> spec = WorkSpecification.filter(filter);
+        Specification<Project> spec = WorkSpecification.filter(filter);
         return workItemRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
-    private WorkItemResponse toResponse(WorkItem workItem) {
-        long countMember = entityMemberService.countMemberOfWork(workItem.getId(), Status.ACTIVE);
+    private WorkItemResponse toResponse(Project project) {
+        long countMember = entityMemberService.countMemberOfWork(project.getId(), Status.ACTIVE);
         WorkItemResponse res = new WorkItemResponse();
-        res.setId(workItem.getId());
-        res.setWordItemUUID(workItem.getWorkItemUuid());
+        res.setId(project.getId());
+        res.setWordItemUUID(project.getWorkItemUuid());
         res.setMemberNumber(String.valueOf(countMember));
-        res.setName(workItem.getName());
-        res.setDescription(workItem.getDescription());
-        res.setStatus(workItem.getStatus());
-        res.setBudgetPoint(workItem.getBudgetPoint());
-        res.setRewardPoint(workItem.getRewardPoint());
-        res.setStartDate(workItem.getStartDate());
-        res.setEndDate(workItem.getEndDate());
+        res.setName(project.getName());
+        res.setDescription(project.getDescription());
+        res.setStatus(project.getStatus());
+        res.setBudgetPoint(project.getBudgetPoint());
+        res.setRewardPoint(project.getRewardPoint());
+        res.setStartDate(project.getStartDate());
+        res.setEndDate(project.getEndDate());
         return res;
     }
 
@@ -87,31 +87,31 @@ public class WorkItemService implements IWorkItemService {
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateProjectRequest(request);
 
-        WorkItem workItem = new WorkItem();
-        workItem.setCreatorId(creator.userId());
-        workItem.setAssigneeId(assignee.userId());
-        workItem.setWorkItemUuid(generateWorkItemUuid());
-        workItem.setParent(null);
-        workItem.setType(WorkItemType.PROJECT);
-        workItem.setName(request.getName());
-        workItem.setDescription(request.getDescription());
-        workItem.setStatus(StatusWork.NOT_STARTED);
-        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
-        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
-        workItem.setReclaimedPoint(0L);
-        workItem.setBonusPoint(0L);
-        workItem.setResult("");
-        workItem.setResultLink("");
-        workItem.setNote("");
-        workItem.setStartDate(request.getStartDate());
-        workItem.setEndDate(request.getEndDate());
-        workItem.setCreatedAt(LocalDateTime.now());
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
-        documentService.saveDocuments(workItem, "PROJECT", files, userId, "pm/projects/" + workItem.getId());
+        Project project = new Project();
+        project.setCreatorId(creator.userId());
+        project.setAssigneeId(assignee.userId());
+        project.setWorkItemUuid(generateWorkItemUuid());
+        project.setParent(null);
+        project.setType(WorkItemType.PROJECT);
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setStatus(StatusWork.NOT_STARTED);
+        project.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        project.setRewardPoint(defaultZero(request.getRewardPoint()));
+        project.setReclaimedPoint(0L);
+        project.setBonusPoint(0L);
+        project.setResult("");
+        project.setResultLink("");
+        project.setNote("");
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setCreatedAt(LocalDateTime.now());
+        project.setUpdatedAt(LocalDateTime.now());
+        workItemRepository.save(project);
+        documentService.saveDocuments(project, "PROJECT", files, userId, "pm/projects/" + project.getId());
 
         if (request.getUserList() != null && !request.getUserList().isEmpty()) {
-            entityMemberService.saveListUserProject(workItem.getId(), request.getUserList());
+            entityMemberService.saveListUserProject(project.getId(), request.getUserList());
         }
     }
 
@@ -119,7 +119,7 @@ public class WorkItemService implements IWorkItemService {
     @Transactional
     public void createTask(Long projectId, TaskRequest request, List<MultipartFile> files, Long userId) {
         var creator = hrmUserDirectoryService.requireById(userId);
-        WorkItem project = workItemRepository.findById(projectId)
+        Project project = workItemRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project.not.found", "Không tìm thấy dự án có id: " + projectId));
         if (project.getStatus().equals(StatusWork.COMPLETED) || project.getStatus().equals(StatusWork.CANCELED)) {
             throw new NotFoundException("task.create.invalid.state", "Dự án đã hoàn thành hoặc đã hủy nên không thể tạo task");
@@ -132,7 +132,7 @@ public class WorkItemService implements IWorkItemService {
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateTaskRequest(request);
 
-        WorkItem task = new WorkItem();
+        Project task = new Project();
         task.setWorkItemUuid(generateWorkItemUuid());
         task.setParent(project);
         task.setType(WorkItemType.TASK);
@@ -161,30 +161,30 @@ public class WorkItemService implements IWorkItemService {
         return toWorkItemDetailResponse(findById(id));
     }
 
-    private WorkItemDetailResponse toWorkItemDetailResponse(WorkItem workItem) {
-        var creator = hrmUserDirectoryService.requireById(workItem.getCreatorId());
-        var assignee = hrmUserDirectoryService.requireById(workItem.getAssigneeId());
+    private WorkItemDetailResponse toWorkItemDetailResponse(Project project) {
+        var creator = hrmUserDirectoryService.requireById(project.getCreatorId());
+        var assignee = hrmUserDirectoryService.requireById(project.getAssigneeId());
         return WorkItemDetailResponse.builder()
-                .id(workItem.getId())
-                .workItemUuid(workItem.getWorkItemUuid())
+                .id(project.getId())
+                .workItemUuid(project.getWorkItemUuid())
                 .creator(creator.fullName())
                 .assignee(assignee.fullName())
-                .name(workItem.getName())
-                .description(workItem.getDescription())
-                .status(workItem.getStatus())
-                .budgetPoint(workItem.getBudgetPoint())
-                .rewardPoint(workItem.getRewardPoint())
-                .reclaimedPoint(workItem.getReclaimedPoint())
-                .bonusPoint(workItem.getBonusPoint())
-                .result(workItem.getResult())
-                .resultLink(workItem.getResultLink())
-                .note(workItem.getNote())
-                .extensionReason(workItem.getExtensionReason())
-                .documents(documentService.getActiveDocuments(workItem.getId(), "PROJECT"))
-                .startDate(workItem.getStartDate())
-                .endDate(workItem.getEndDate())
-                .createdAt(workItem.getCreatedAt())
-                .updatedAt(workItem.getUpdatedAt())
+                .name(project.getName())
+                .description(project.getDescription())
+                .status(project.getStatus())
+                .budgetPoint(project.getBudgetPoint())
+                .rewardPoint(project.getRewardPoint())
+                .reclaimedPoint(project.getReclaimedPoint())
+                .bonusPoint(project.getBonusPoint())
+                .result(project.getResult())
+                .resultLink(project.getResultLink())
+                .note(project.getNote())
+                .extensionReason(project.getExtensionReason())
+                .documents(documentService.getActiveDocuments(project.getId(), "PROJECT"))
+                .startDate(project.getStartDate())
+                .endDate(project.getEndDate())
+                .createdAt(project.getCreatedAt())
+                .updatedAt(project.getUpdatedAt())
                 .build();
     }
 
@@ -196,13 +196,13 @@ public class WorkItemService implements IWorkItemService {
     @Override
     @Transactional
     public void editProject(Long id, WorkItemRequest request, List<MultipartFile> files) {
-        WorkItem workItem = findById(id);
+        Project project = findById(id);
         Long currentUserId = UserContext.requiredUserId();
 
-        if (!currentUserId.equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(project.getCreatorId())) {
             throw new ForbiddenException("project.update.forbidden", "Bạn không phải là chủ của dự án này!");
         }
-        if (workItem.getStatus() != StatusWork.NOT_STARTED) {
+        if (project.getStatus() != StatusWork.NOT_STARTED) {
             throw new ConflictDataException("project.update.conflict", "Chỉ được sửa khi dự án chưa bắt đầu");
         }
 
@@ -210,81 +210,81 @@ public class WorkItemService implements IWorkItemService {
         validateDateRange(request.getStartDate(), request.getEndDate());
         validateProjectRequest(request);
 
-        workItem.setAssigneeId(newAssignee.userId());
-        workItem.setName(request.getName());
-        workItem.setDescription(request.getDescription());
-        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
-        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
-        workItem.setStartDate(request.getStartDate());
-        workItem.setEndDate(request.getEndDate());
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
+        project.setAssigneeId(newAssignee.userId());
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        project.setRewardPoint(defaultZero(request.getRewardPoint()));
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setUpdatedAt(LocalDateTime.now());
+        workItemRepository.save(project);
         if (files != null) {
-            documentService.replaceDocuments(workItem, "PROJECT", files, currentUserId, "pm/projects/" + workItem.getId());
+            documentService.replaceDocuments(project, "PROJECT", files, currentUserId, "pm/projects/" + project.getId());
         }
 
         if (request.getUserList() != null) {
-            entityMemberService.deleteByProjectId(workItem.getId());
-            entityMemberService.saveListUserProject(workItem.getId(), request.getUserList());
+            entityMemberService.deleteByProjectId(project.getId());
+            entityMemberService.saveListUserProject(project.getId(), request.getUserList());
         }
     }
 
     @Override
     @Transactional
     public void editTask(Long id, EditTaskRequest request, List<MultipartFile> files) {
-        WorkItem workItem = findById(id);
+        Project project = findById(id);
         Long currentUserId = UserContext.requiredUserId();
 
-        if (!currentUserId.equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(project.getCreatorId())) {
             throw new ForbiddenException("task.update.forbidden", "Bạn không phải là chủ của công việc này!");
         }
-        if (workItem.getStatus() != StatusWork.NOT_STARTED) {
+        if (project.getStatus() != StatusWork.NOT_STARTED) {
             throw new ConflictDataException("task.update.conflict", "Chỉ được sửa khi công việc chưa bắt đầu");
         }
 
         var newAssignee = hrmUserDirectoryService.requireById(request.getAssigneeId());
         validateDateRange(request.getStartDate(), request.getEndDate());
 
-        workItem.setAssigneeId(newAssignee.userId());
-        workItem.setName(request.getName());
-        workItem.setDescription(request.getDescription());
-        workItem.setBudgetPoint(defaultZero(request.getBudgetPoint()));
-        workItem.setRewardPoint(defaultZero(request.getRewardPoint()));
-        workItem.setStartDate(request.getStartDate());
-        workItem.setEndDate(request.getEndDate());
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
+        project.setAssigneeId(newAssignee.userId());
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setBudgetPoint(defaultZero(request.getBudgetPoint()));
+        project.setRewardPoint(defaultZero(request.getRewardPoint()));
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setUpdatedAt(LocalDateTime.now());
+        workItemRepository.save(project);
         if (files != null) {
-            documentService.replaceDocuments(workItem, "TASK_GUIDE", files, currentUserId, "pm/tasks/" + workItem.getId() + "/guide");
+            documentService.replaceDocuments(project, "TASK_GUIDE", files, currentUserId, "pm/tasks/" + project.getId() + "/guide");
         }
     }
 
     @Override
     public void deleteWork(Long id, WorkItemType workType) {
-        WorkItem workItem = findById(id);
+        Project project = findById(id);
         Long currentUserId = UserContext.requiredUserId();
 
-        if (!currentUserId.equals(workItem.getCreatorId())) {
+        if (!currentUserId.equals(project.getCreatorId())) {
             throw new ForbiddenException("work.delete.forbidden", "Bạn không phải là chủ của " + workType.getLabel() + " này!");
         }
-        if (!workItem.getStatus().equals(StatusWork.NOT_STARTED)) {
+        if (!project.getStatus().equals(StatusWork.NOT_STARTED)) {
             throw new NotFoundException("work.delete.invalid.state", workType.getLabel() + " đang tiến hành không xóa được!");
         }
 
-        workItem.setStatus(StatusWork.CANCELED);
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
+        project.setStatus(StatusWork.CANCELED);
+        project.setUpdatedAt(LocalDateTime.now());
+        workItemRepository.save(project);
     }
 
     @Override
-    public WorkItem findById(Long id) {
+    public Project findById(Long id) {
         return workItemRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("work.not.found", "Không tìm thấy id dự án: " + id));
     }
 
     @Override
-    public WorkItem refuseTask(Long taskId, NoteRequest request) {
-        WorkItem work = findById(taskId);
+    public Project refuseTask(Long taskId, NoteRequest request) {
+        Project work = findById(taskId);
         Long currentUserId = UserContext.requiredUserId();
 
         if (!currentUserId.equals(work.getCreatorId())) {
@@ -301,8 +301,8 @@ public class WorkItemService implements IWorkItemService {
     }
 
     @Override
-    public WorkItem approveTask(Long taskId, ApproveTaskRequest request) {
-        WorkItem task = findById(taskId);
+    public Project approveTask(Long taskId, ApproveTaskRequest request) {
+        Project task = findById(taskId);
         Long currentUserId = UserContext.requiredUserId();
 
         if (task.getType() != WorkItemType.TASK) {
@@ -332,60 +332,60 @@ public class WorkItemService implements IWorkItemService {
         return taskDetailResponse(findById(id));
     }
 
-    private TaskDetailResponse taskDetailResponse(WorkItem workItem) {
-        var creator = hrmUserDirectoryService.requireById(workItem.getCreatorId());
-        var assignee = hrmUserDirectoryService.requireById(workItem.getAssigneeId());
+    private TaskDetailResponse taskDetailResponse(Project project) {
+        var creator = hrmUserDirectoryService.requireById(project.getCreatorId());
+        var assignee = hrmUserDirectoryService.requireById(project.getAssigneeId());
         return TaskDetailResponse.builder()
-                .id(workItem.getId())
-                .workItemUuid(workItem.getWorkItemUuid())
+                .id(project.getId())
+                .workItemUuid(project.getWorkItemUuid())
                 .creator(creator.fullName())
                 .assignee(assignee.fullName())
-                .name(workItem.getName())
-                .description(workItem.getDescription())
-                .status(workItem.getStatus())
-                .budgetPoint(workItem.getBudgetPoint())
-                .rewardPoint(workItem.getRewardPoint())
-                .reclaimedPoint(workItem.getReclaimedPoint())
-                .result(workItem.getResult())
-                .resultLink(workItem.getResultLink())
-                .note(workItem.getNote())
-                .guideDocuments(documentService.getActiveDocuments(workItem.getId(), "TASK_GUIDE"))
-                .submissionDocuments(documentService.getActiveDocuments(workItem.getId(), "TASK_SUBMISSION"))
-                .startDate(workItem.getStartDate())
-                .endDate(workItem.getEndDate())
-                .createdAt(workItem.getCreatedAt())
-                .updatedAt(workItem.getUpdatedAt())
+                .name(project.getName())
+                .description(project.getDescription())
+                .status(project.getStatus())
+                .budgetPoint(project.getBudgetPoint())
+                .rewardPoint(project.getRewardPoint())
+                .reclaimedPoint(project.getReclaimedPoint())
+                .result(project.getResult())
+                .resultLink(project.getResultLink())
+                .note(project.getNote())
+                .guideDocuments(documentService.getActiveDocuments(project.getId(), "TASK_GUIDE"))
+                .submissionDocuments(documentService.getActiveDocuments(project.getId(), "TASK_SUBMISSION"))
+                .startDate(project.getStartDate())
+                .endDate(project.getEndDate())
+                .createdAt(project.getCreatedAt())
+                .updatedAt(project.getUpdatedAt())
                 .build();
     }
 
     @Override
     public void submitTask(Long taskId, SubmitTaskRequest request, List<MultipartFile> files) {
-        WorkItem workItem = findById(taskId);
+        Project project = findById(taskId);
         Long currentUserId = UserContext.requiredUserId();
 
-        if (!currentUserId.equals(workItem.getAssigneeId())) {
+        if (!currentUserId.equals(project.getAssigneeId())) {
             throw new NotFoundException("work.submit.forbidden", "Bạn không phải là người thực hiện công việc này!");
         }
-        if (workItem.getType() != WorkItemType.TASK) {
+        if (project.getType() != WorkItemType.TASK) {
             throw new NotFoundException("task.not.found", "Không tìm thấy task cần nộp");
         }
 
-        workItem.setResult(request.getResult());
-        workItem.setResultLink(request.getResultLink());
-        workItem.setStatus(StatusWork.PENDING_REVIEW);
-        workItem.setUpdatedAt(LocalDateTime.now());
-        workItemRepository.save(workItem);
+        project.setResult(request.getResult());
+        project.setResultLink(request.getResultLink());
+        project.setStatus(StatusWork.PENDING_REVIEW);
+        project.setUpdatedAt(LocalDateTime.now());
+        workItemRepository.save(project);
         documentService.replaceDocuments(
-                workItem,
+                project,
                 "TASK_SUBMISSION",
                 files,
                 currentUserId,
-                "pm/tasks/" + workItem.getId() + "/submission");
+                "pm/tasks/" + project.getId() + "/submission");
     }
 
     @Override
-    public WorkItem extendProject(Long projectId, ExtendProjectRequest request) {
-        WorkItem project = findById(projectId);
+    public Project extendProject(Long projectId, ExtendProjectRequest request) {
+        Project project = findById(projectId);
         Long currentUserId = UserContext.requiredUserId();
 
         if (project.getType() != WorkItemType.PROJECT) {
@@ -415,8 +415,8 @@ public class WorkItemService implements IWorkItemService {
     }
 
     @Override
-    public WorkItem completeProject(Long projectId, CompleteProjectRequest request) {
-        WorkItem project = findById(projectId);
+    public Project completeProject(Long projectId, CompleteProjectRequest request) {
+        Project project = findById(projectId);
         Long currentUserId = UserContext.requiredUserId();
 
         if (project.getType() != WorkItemType.PROJECT) {

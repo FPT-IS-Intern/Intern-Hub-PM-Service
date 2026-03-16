@@ -5,7 +5,7 @@ import com.intern.hub.pm.dto.response.TaskDetailResponse;
 import com.intern.hub.pm.dto.response.WorkItemDetailResponse;
 import com.intern.hub.pm.enums.StatusWork;
 import com.intern.hub.pm.enums.WorkItemType;
-import com.intern.hub.pm.model.WorkItem;
+import com.intern.hub.pm.model.Project;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -24,11 +24,11 @@ public interface IWorkItemService {
 
     void deleteWork(Long id, WorkItemType workType);
 
-    WorkItem findById(Long id);
+    Project findById(Long id);
 
-    WorkItem refuseTask(Long taskId, NoteRequest request);
+    Project refuseTask(Long taskId, NoteRequest request);
 
-    WorkItem approveTask(Long taskId, ApproveTaskRequest request);
+    Project approveTask(Long taskId, ApproveTaskRequest request);
 
     void editTask(Long id, EditTaskRequest request, List<MultipartFile> files);
 
@@ -36,9 +36,9 @@ public interface IWorkItemService {
 
     void submitTask(Long taskId, SubmitTaskRequest request, List<MultipartFile> files);
 
-    WorkItem extendProject(Long projectId, ExtendProjectRequest request);
+    Project extendProject(Long projectId, ExtendProjectRequest request);
 
-    WorkItem completeProject(Long projectId, CompleteProjectRequest request);
+    Project completeProject(Long projectId, CompleteProjectRequest request);
 
     long countTaskByUser(
             WorkItemType workType,
