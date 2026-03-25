@@ -68,7 +68,7 @@ common:
 
 services:
   dms:
-    url: localhost:8085
+    url: http://storage-service-g8egoo:8080
 
   hrm:
     url: localhost:8081

@@ -26,6 +26,7 @@ spring:
         default_schema: ih_pm
 server:
   port: 9000
+  forward-headers-strategy: framework
   tomcat:
     threads:
       max: 20
@@ -48,8 +49,11 @@ springdoc:
   api-docs:
     enabled: true
     path: /v3/api-docs
+    groups:
+      enabled: true
   swagger-ui:
     enabled: true
+    path: /swagger-ui.html
 
 audit:
   data:

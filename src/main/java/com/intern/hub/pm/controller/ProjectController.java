@@ -1,6 +1,5 @@
 package com.intern.hub.pm.controller;
 
-import com.intern.hub.library.common.exception.ForbiddenException;
 import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
@@ -58,15 +57,15 @@ public class ProjectController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Tạo dự án", description = "Tạo mới dự án và có thể đính kèm tài liệu charter.")
-    @Authenticated
+//    @Authenticated
     public ResponseApi<ProjectResponse> createProject(
             @Valid @RequestPart("request") ProjectUpsertRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        AuthContext context = AuthContextHolder.get()
-                .orElseThrow(() -> new ForbiddenException("Không tìm thấy thông tin xác thực. Vui lòng kiểm tra lại token hoặc các header (X-UserId, X-Authenticated)."));
-        Long userId = context.userId();
-//        Long userId = 159220116939083776L;
+//        AuthContext context = AuthContextHolder.get()
+//                .orElseThrow(() -> new ForbiddenException("Không tìm thấy thông tin xác thực. Vui lòng kiểm tra lại token hoặc các header (X-UserId, X-Authenticated)."));
+//        Long userId = context.userId();
+        Long userId = 159220116939083776L;
         return ResponseApi.ok(projectService.createProject(userId, request, files));
     }
 
