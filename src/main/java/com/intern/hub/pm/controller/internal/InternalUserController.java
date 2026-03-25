@@ -19,11 +19,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("${api.prefix}/internal")
 @RequiredArgsConstructor
 @Tag(name = "Internal User", description = "Các API nội bộ dành cho người dùng")
-@SecurityRequirement(name = "InternalAPIKey")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class InternalUserController {
 
-    HrmInternalFeignClient hrmInternalFeignClient;
+    private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @GetMapping("/users/by-email")
     public ResponseApi<HrmUserClientModel> getUserByEmail(@RequestParam("email") String email) {

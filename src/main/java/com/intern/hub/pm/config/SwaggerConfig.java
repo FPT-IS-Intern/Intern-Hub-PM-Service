@@ -21,8 +21,8 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("API Quản Lý Dự Án Intern Hub")
-                        .description("Tài liệu API cho nghiệp vụ dự án, thành viên dự án, task và workflow nộp bài"))
+                        .title("API Quản Lý Ví Của User Intern Hub")
+                        .description("Tài liệu API cho nghiệp vụ ví và blockchain"))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer"));
     }
 
@@ -46,5 +46,4 @@ public class SwaggerConfig {
                                         .name("X-Internal-Secret"))
                 );
     }
-
 }
