@@ -33,7 +33,7 @@ spring:
       enabled: true
 
 server:
-  port: 9000
+  port: 8080
   tomcat:
     threads:
       max: 20
