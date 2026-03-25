@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -78,34 +79,35 @@ public class Project extends AuditEntity {
 
     /**
      * =======================================================
-     * Document Project Charter  - DMS MODULE
+     * Document Project Charter - DMS MODULE
      * =======================================================
      */
 
     @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entity_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "entity_id",
+            referencedColumnName = "id",
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     List<Document> projectCharterDocuments;
 
     /**
      * =======================================================
-     * Document Deliverables  - DMS MODULE
+     * Document Deliverables - DMS MODULE
      * =======================================================
      */
 
-    String deliverableDescription;
+    String deliverableDescription; // đáp án
 
-    String deliverableLink;
+    String deliverableLink;  //link
 
-    Long endAt;
+    String completionComment; // nhận xét
 
-    String extensionReason;
+    LocalDateTime startDate;
 
-    String completionComment;
-
-    Long recoveredToken;
-
-    Long bonusToken;
-
+    LocalDateTime endDate;
     /**
      * =======================================================
      * Relationship

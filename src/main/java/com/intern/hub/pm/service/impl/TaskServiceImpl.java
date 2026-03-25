@@ -1,5 +1,6 @@
 package com.intern.hub.pm.service.impl;
 
+import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
@@ -21,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -40,16 +43,12 @@ public class TaskServiceImpl implements TaskService {
 
         Task task = Task.builder()
                 .project(project)
-                .taskUUID(UUID.randomUUID().toString())
+                .taskUUID(randomNumberUUI())
                 .name(request.name().trim())
                 .description(request.description().trim())
-                .note(trimToNull(request.note()))
-                .status(request.status())
                 .rewardToken(request.rewardToken())
                 .creatorId(currentUserId)
                 .assigneeId(request.assigneeId())
-                .deliverableDescription(trimToNull(request.deliverableDescription()))
-                .deliverableLink(trimToNull(request.deliverableLink()))
                 .build();
 
         Task savedTask = taskRepository.save(task);
@@ -66,12 +65,20 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TaskResponse> getProjectTasks(Long projectId) {
+    public com.intern.hub.library.common.dto.PaginatedData<TaskResponse> getProjectTasks(Long projectId, int page, int size) {
         getActiveProject(projectId);
-        return taskRepository.findAllByProjectIdAndStatusNotOrderByCreatedAtDesc(projectId, StatusWork.CANCELED)
-                .stream()
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        org.springframework.data.domain.Page<Task> taskPage = taskRepository.findAllByProjectIdAndStatusNot(projectId, StatusWork.CANCELED, pageable);
+
+        List<TaskResponse> items = taskPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
+
+        return com.intern.hub.library.common.dto.PaginatedData.<TaskResponse>builder()
+                .items(items)
+                .totalItems(taskPage.getTotalElements())
+                .totalPages(taskPage.getTotalPages())
+                .build();
     }
 
     @Override
@@ -88,12 +95,8 @@ public class TaskServiceImpl implements TaskService {
 
         task.setName(request.name().trim());
         task.setDescription(request.description().trim());
-        task.setNote(trimToNull(request.note()));
-        task.setStatus(request.status());
         task.setRewardToken(request.rewardToken());
         task.setAssigneeId(request.assigneeId());
-        task.setDeliverableDescription(trimToNull(request.deliverableDescription()));
-        task.setDeliverableLink(trimToNull(request.deliverableLink()));
 
         Task savedTask = taskRepository.save(task);
         documentService.replaceDocuments(
@@ -144,8 +147,6 @@ public class TaskServiceImpl implements TaskService {
         Task task = getPendingReviewTask(taskId);
         assertTaskOwner(task);
         task.setStatus(StatusWork.COMPLETED);
-        task.setReviewComment(trimToNull(request.reviewComment()));
-        task.setRecoveredToken(request.recoveredToken());
         return toResponse(taskRepository.save(task));
     }
 
@@ -155,19 +156,26 @@ public class TaskServiceImpl implements TaskService {
         Task task = getPendingReviewTask(taskId);
         assertTaskOwner(task);
         task.setStatus(StatusWork.NEEDS_REVISION);
-        task.setReviewComment(trimToNull(request.reviewComment()));
-        task.setRecoveredToken(request.recoveredToken());
+        task.setNote(trimToNull(request.reviewComment()));
         return toResponse(taskRepository.save(task));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TaskResponse> getMyTasks() {
+    public PaginatedData<TaskResponse> getMyTasks(int page, int size) {
         Long currentUserId = UserContext.requiredUserId();
-        return taskRepository.findAllByAssigneeIdAndStatusNotOrderByCreatedAtDesc(currentUserId, StatusWork.CANCELED)
-                .stream()
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        org.springframework.data.domain.Page<Task> taskPage = taskRepository.findAllByAssigneeIdAndStatusNot(currentUserId, StatusWork.CANCELED, pageable);
+
+        List<TaskResponse> items = taskPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
+
+        return com.intern.hub.library.common.dto.PaginatedData.<TaskResponse>builder()
+                .items(items)
+                .totalItems(taskPage.getTotalElements())
+                .totalPages(taskPage.getTotalPages())
+                .build();
     }
 
     private Project getActiveProject(Long projectId) {
@@ -223,8 +231,6 @@ public class TaskServiceImpl implements TaskService {
                 charterDocuments,
                 task.getDeliverableDescription(),
                 task.getDeliverableLink(),
-                task.getReviewComment(),
-                task.getRecoveredToken(),
                 submissionDocuments,
                 task.getCreatedAt(),
                 task.getUpdatedAt()
@@ -237,5 +243,12 @@ public class TaskServiceImpl implements TaskService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String randomNumberUUI(){
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int randomPart = ThreadLocalRandom.current().nextInt(0, 1_000_000);
+        String randomStr = String.format("%06d", randomPart).trim();
+        return datePart + randomStr;
     }
 }

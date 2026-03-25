@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -79,7 +80,13 @@ public class Task extends AuditEntity {
      */
 
     @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entity_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "entity_id",
+            referencedColumnName = "id",
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     List<Document> taskCharterDocument;
 
     /**
@@ -88,13 +95,15 @@ public class Task extends AuditEntity {
      * =======================================================
      */
 
-    String deliverableDescription;
+    String deliverableDescription; // đáp án
 
-    String deliverableLink;
+    String deliverableLink;  //link
 
-    String reviewComment;
+    String completionComment; // nhận xét
 
-    Long recoveredToken;
+    LocalDateTime startDate;
+
+    LocalDateTime endDate;
 
     /**
      * =======================================================

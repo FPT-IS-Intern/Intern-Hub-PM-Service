@@ -2,6 +2,7 @@ package com.intern.hub.pm.model.team;
 
 import com.intern.hub.pm.generator.SnowflakeGenerated;
 import com.intern.hub.pm.model.AuditEntity;
+import com.intern.hub.pm.model.constant.Status;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,6 +36,9 @@ public class TeamMember extends AuditEntity {
      */
 
     private Long userId;
+
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     /**
      * =======================================================

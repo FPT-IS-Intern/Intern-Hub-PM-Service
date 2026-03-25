@@ -10,11 +10,11 @@ import java.util.List;
 
 public interface ProjectService {
 
-    List<ProjectResponse> getProjects();
+    com.intern.hub.library.common.dto.PaginatedData<ProjectResponse> getProjects(int page, int size);
 
     ProjectResponse getProject(Long projectId);
 
-    ProjectResponse createProject(ProjectUpsertRequest request, List<MultipartFile> files);
+    ProjectResponse createProject(Long userId, ProjectUpsertRequest request, List<MultipartFile> files);
 
     ProjectResponse updateProject(Long projectId, ProjectUpsertRequest request, List<MultipartFile> files);
 

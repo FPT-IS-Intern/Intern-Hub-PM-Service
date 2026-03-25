@@ -19,8 +19,6 @@ public record TaskResponse(
         List<DocumentResponse> charterDocuments,
         String deliverableDescription,
         String deliverableLink,
-        String reviewComment,
-        Long recoveredToken,
         List<DocumentResponse> submissionDocuments,
         Long createdAt,
         Long updatedAt

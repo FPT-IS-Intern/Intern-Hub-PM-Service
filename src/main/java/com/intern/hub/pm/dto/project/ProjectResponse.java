@@ -3,6 +3,7 @@ package com.intern.hub.pm.dto.project;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.model.constant.StatusWork;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record ProjectResponse(
@@ -18,11 +19,9 @@ public record ProjectResponse(
         Long assigneeId,
         String deliverableDescription,
         String deliverableLink,
-        Long endAt,
-        String extensionReason,
         String completionComment,
-        Long recoveredToken,
-        Long bonusToken,
+        LocalDateTime startDate,
+        LocalDateTime endDate,
         List<DocumentResponse> charterDocuments,
         Long createdAt,
         Long updatedAt

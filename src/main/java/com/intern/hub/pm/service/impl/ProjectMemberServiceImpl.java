@@ -46,12 +46,20 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProjectMemberResponse> getMembers(Long projectId) {
+    public com.intern.hub.library.common.dto.PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size) {
         getActiveProject(projectId);
-        return projectMemberRepository.findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE)
-                .stream()
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "createdAt"));
+        org.springframework.data.domain.Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId, Status.ACTIVE, pageable);
+
+        List<ProjectMemberResponse> items = memberPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
+
+        return com.intern.hub.library.common.dto.PaginatedData.<ProjectMemberResponse>builder()
+                .items(items)
+                .totalItems(memberPage.getTotalElements())
+                .totalPages(memberPage.getTotalPages())
+                .build();
     }
 
     @Override

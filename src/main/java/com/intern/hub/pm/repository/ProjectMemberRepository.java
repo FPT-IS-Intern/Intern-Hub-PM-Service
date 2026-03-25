@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
 
+    org.springframework.data.domain.Page<ProjectMember> findAllByProjectIdAndStatus(Long projectId, Status status, org.springframework.data.domain.Pageable pageable);
+
     List<ProjectMember> findAllByProjectIdAndStatusOrderByCreatedAtAsc(Long projectId, Status status);
 
     Optional<ProjectMember> findByIdAndStatus(Long id, Status status);

@@ -9,4 +9,5 @@ import java.util.List;
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findAllByStatusNot(com.intern.hub.pm.model.constant.StatusWork status, Sort sort);
+    org.springframework.data.domain.Page<Project> findAllByStatusNot(com.intern.hub.pm.model.constant.StatusWork status, org.springframework.data.domain.Pageable pageable);
 }

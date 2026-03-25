@@ -10,7 +10,7 @@ public interface ProjectMemberService {
 
     ProjectMemberResponse addMember(Long projectId, ProjectMemberCreateRequest request);
 
-    List<ProjectMemberResponse> getMembers(Long projectId);
+    com.intern.hub.library.common.dto.PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size);
 
     ProjectMemberResponse updateMember(Long memberId, ProjectMemberUpdateRequest request);
 

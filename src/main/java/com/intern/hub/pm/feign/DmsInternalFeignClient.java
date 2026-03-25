@@ -17,8 +17,7 @@ public interface DmsInternalFeignClient {
     ResponseApi<DmsDocumentClientModel> uploadFile(
             @RequestPart("file") MultipartFile file,
             @RequestParam("destinationPath") String destinationPath,
-            @RequestParam("actorId") Long actorId,
-            @RequestParam("isAdmin") boolean isAdmin
+            @RequestParam("actorId") Long actorId
     );
 
     @DeleteMapping("/dms/internal/presigned/document")

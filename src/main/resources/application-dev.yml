@@ -1,0 +1,100 @@
+spring:
+  application:
+    name: intern-hub-pm-service
+  jmx:
+    enabled: false
+  datasource:
+    url:  jdbc:postgresql://100.92.147.62:5432/ih_pm
+    username: ih_pm
+    password: 123qwe!@#4
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 2
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: ih_pm
+server:
+  port: 9000
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    tracing:
+      export:
+        enabled: false
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+
+audit:
+  data:
+    enabled: false
+
+api:
+  prefix: /pm
+
+security:
+  internal-secret: X04R2pX72kyL
+  internal-path-prefix: /pm/internal/
+
+common:
+  context:
+    enabled: true
+
+services:
+  dms:
+    url: localhost:8085
+
+  hrm:
+    url: localhost:8081
+
+aws:
+  s3:
+    paths:
+      project: pm/projects/
+      task: pm/tasks/
+    max-total-size: 20971520 # 20MB
+    allow-types:
+      image: "image/(png|jpeg|jpg)"
+      document: "application/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document|vnd.ms-excel|vnd.openxmlformats-officedocument.spreadsheetml.sheet)|image/(png|jpeg|jpg)"
+
+logging:
+  level:
+    root: INFO
+    com.intern.hub: INFO
+    org.springframework: WARN
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.apache.catalina: WARN
+    org.apache.coyote: WARN
+    org.apache.tomcat: WARN
+
+gateway-url: http://localhost:8765

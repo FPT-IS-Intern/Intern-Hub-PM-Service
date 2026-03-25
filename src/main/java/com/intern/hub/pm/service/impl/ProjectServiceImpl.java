@@ -1,14 +1,19 @@
 package com.intern.hub.pm.service.impl;
 
+import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectExtendRequest;
 import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
+import com.intern.hub.pm.dto.project.member.ProjectMemberCreateRequest;
+import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.model.project.Project;
+import com.intern.hub.pm.model.project.ProjectMember;
+import com.intern.hub.pm.repository.ProjectMemberRepository;
 import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.repository.TaskRepository;
 import com.intern.hub.pm.service.DocumentService;
@@ -22,8 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -32,16 +40,25 @@ public class ProjectServiceImpl implements ProjectService {
     private static final Sort PROJECT_SORT = Sort.by(Sort.Direction.DESC, "createdAt");
 
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final TaskRepository taskRepository;
     private final DocumentService documentService;
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProjectResponse> getProjects() {
-        return projectRepository.findAllByStatusNot(StatusWork.CANCELED, PROJECT_SORT)
-                .stream()
+    public com.intern.hub.library.common.dto.PaginatedData<ProjectResponse> getProjects(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, PROJECT_SORT);
+        org.springframework.data.domain.Page<Project> projectPage = projectRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
+
+        List<ProjectResponse> items = projectPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
+
+        return com.intern.hub.library.common.dto.PaginatedData.<ProjectResponse>builder()
+                .items(items)
+                .totalItems(projectPage.getTotalElements())
+                .totalPages(projectPage.getTotalPages())
+                .build();
     }
 
     @Override
@@ -52,30 +69,39 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ProjectResponse createProject(ProjectUpsertRequest request, List<MultipartFile> files) {
-        Long currentUserId = UserContext.requiredUserId();
-
+    public ProjectResponse createProject(Long userId, ProjectUpsertRequest request, List<MultipartFile> files) {
         Project project = Project.builder()
-                .projectUUID(UUID.randomUUID().toString())
+                .projectUUID(randomNumberUUI())
                 .name(request.name().trim())
                 .description(request.description().trim())
-                .note(trimToNull(request.note()))
-                .status(request.status())
+                .status(StatusWork.NOT_STARTED)
                 .budgetToken(request.budgetToken())
                 .rewardToken(request.rewardToken())
-                .creatorId(currentUserId)
+                .creatorId(userId)
                 .assigneeId(request.assigneeId())
-                .deliverableDescription(trimToNull(request.deliverableDescription()))
-                .deliverableLink(trimToNull(request.deliverableLink()))
-                .endAt(request.endAt())
+                .startDate(request.startDate())
+                .endDate(request.endDate())
                 .build();
 
         Project savedProject = projectRepository.save(project);
+
+        if (request.memberList() != null && !request.memberList().isEmpty()) {
+            List<ProjectMember> members = request.memberList().stream()
+                    .map(m -> ProjectMember.builder()
+                            .userId(m.userId())
+                            .role(m.role())
+                            .project(savedProject)
+                            .status(Status.ACTIVE)
+                            .build())
+                    .toList();
+            projectMemberRepository.saveAll(members);
+        }
+
         documentService.replaceDocuments(
                 savedProject.getId(),
                 DocumentScope.PROJECT,
                 DocumentType.CHARTER,
-                currentUserId,
+                userId,
                 "pm/projects/" + savedProject.getId() + "/charter",
                 files
         );
@@ -88,18 +114,40 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
 
+        if (project.getStatus() != StatusWork.NOT_STARTED) {
+            throw new ConflictDataException("Chỉ được sửa khi dự án chưa bắt đầu");
+        }
+
+        if (request.startDate().isAfter(request.endDate())) {
+            throw new ConflictDataException("Ngày bắt đầu phải trước ngày kết thúc");
+        }
+
         project.setName(request.name().trim());
         project.setDescription(request.description().trim());
-        project.setNote(trimToNull(request.note()));
-        project.setStatus(request.status());
         project.setBudgetToken(request.budgetToken());
         project.setRewardToken(request.rewardToken());
         project.setAssigneeId(request.assigneeId());
-        project.setDeliverableDescription(trimToNull(request.deliverableDescription()));
-        project.setDeliverableLink(trimToNull(request.deliverableLink()));
-        project.setEndAt(request.endAt());
+        project.setStartDate(request.startDate());
+        project.setEndDate(request.endDate());
 
         Project savedProject = projectRepository.save(project);
+
+        if (request.memberList() != null) {
+            // Simple replace strategy for members
+            List<ProjectMember> existingMembers = projectMemberRepository.findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
+            projectMemberRepository.deleteAll(existingMembers);
+
+            List<ProjectMember> newMembers = request.memberList().stream()
+                    .map(m -> ProjectMember.builder()
+                            .userId(m.userId())
+                            .role(m.role())
+                            .project(savedProject)
+                            .status(Status.ACTIVE)
+                            .build())
+                    .toList();
+            projectMemberRepository.saveAll(newMembers);
+        }
+
         documentService.replaceDocuments(
                 savedProject.getId(),
                 DocumentScope.PROJECT,
@@ -116,6 +164,9 @@ public class ProjectServiceImpl implements ProjectService {
     public void deleteProject(Long projectId) {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
+        if (project.getStatus() != StatusWork.NOT_STARTED) {
+            throw new ConflictDataException("Chỉ đóng được dự án khi, dự án chưa bắt đầu");
+        }
         project.setStatus(StatusWork.CANCELED);
         projectRepository.save(project);
     }
@@ -125,37 +176,35 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectResponse extendProject(Long projectId, ProjectExtendRequest request) {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
-        project.setEndAt(request.endAt());
-        project.setExtensionReason(trimToNull(request.reason()));
+        project.setEndDate(request.endDate());
         return toResponse(projectRepository.save(project));
     }
 
     @Override
     @Transactional
     public ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request) {
-        Project project = getActiveProject(projectId);
-        assertProjectOwner(project);
-        boolean hasPendingReview = !taskRepository.findAllByProjectIdAndStatusNotOrderByCreatedAtDesc(projectId, StatusWork.CANCELED)
-                .stream()
-                .filter(task -> task.getStatus() == StatusWork.PENDING_REVIEW)
-                .toList()
-                .isEmpty();
-        if (hasPendingReview) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project still has tasks pending review");
-        }
-
-        project.setStatus(StatusWork.COMPLETED);
-        project.setCompletionComment(trimToNull(request.completionComment()));
-        project.setRecoveredToken(request.recoveredToken());
-        project.setBonusToken(request.bonusToken());
-        return toResponse(projectRepository.save(project));
+//        Project project = getActiveProject(projectId);
+//        assertProjectOwner(project);
+//        boolean hasPendingReview = !taskRepository.findAllByProjectIdAndStatusNotOrderByCreatedAtDesc(projectId, StatusWork.CANCELED)
+//                .stream()
+//                .filter(task -> task.getStatus() == StatusWork.PENDING_REVIEW)
+//                .toList()
+//                .isEmpty();
+//        if (hasPendingReview) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project still has tasks pending review");
+//        }
+//
+//        project.setStatus(StatusWork.COMPLETED);
+//        project.setCompletionComment(trimToNull(request.completionComment()));
+//        return toResponse(projectRepository.save(project));
+        return null;
     }
 
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án"));
         if (project.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án");
         }
         return project;
     }
@@ -163,7 +212,7 @@ public class ProjectServiceImpl implements ProjectService {
     private void assertProjectOwner(Project project) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(project.getCreatorId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the project owner can modify this project");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải chủ dự án này!");
         }
     }
 
@@ -184,11 +233,9 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getAssigneeId(),
                 project.getDeliverableDescription(),
                 project.getDeliverableLink(),
-                project.getEndAt(),
-                project.getExtensionReason(),
                 project.getCompletionComment(),
-                project.getRecoveredToken(),
-                project.getBonusToken(),
+                project.getStartDate(),
+                project.getEndDate(),
                 charterDocuments,
                 project.getCreatedAt(),
                 project.getUpdatedAt()
@@ -201,5 +248,12 @@ public class ProjectServiceImpl implements ProjectService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String randomNumberUUI(){
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int randomPart = ThreadLocalRandom.current().nextInt(0, 1_000_000);
+        String randomStr = String.format("%06d", randomPart).trim();
+        return datePart + randomStr;
     }
 }

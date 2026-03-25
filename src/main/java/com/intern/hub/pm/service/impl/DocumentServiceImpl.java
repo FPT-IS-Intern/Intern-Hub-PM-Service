@@ -2,14 +2,14 @@ package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.library.common.dto.ResponseApi;
 import com.intern.hub.pm.dto.document.DocumentResponse;
-import com.intern.hub.pm.feign.DmsInternalFeignClient;
-import com.intern.hub.pm.feign.model.DmsDocumentClientModel;
 import com.intern.hub.pm.model.document.Document;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.repository.DocumentRepository;
+import com.intern.hub.pm.repository.FileStorageRepository;
 import com.intern.hub.pm.service.DocumentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,14 @@ import java.util.List;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
-    private final DmsInternalFeignClient dmsInternalFeignClient;
+    private final FileStorageRepository fileStorageRepository;
+    private final StorageObjectLifecycleManager storageObjectLifecycleManager;
+
+    @Value("${aws.s3.max-total-size}")
+    private Long maxTotalSize;
+
+    @Value("${aws.s3.allow-types.document}")
+    private String allowTypesDocument;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,8 +53,9 @@ public class DocumentServiceImpl implements DocumentService {
                 entityId, documentScope, documentType);
 
         for (Document existingDocument : existingDocuments) {
-            if (existingDocument.getFileUrl() != null && !existingDocument.getFileUrl().isBlank()) {
-                dmsInternalFeignClient.deleteFile(existingDocument.getFileUrl(), actorId);
+            String key = existingDocument.getFileUrl();
+            if (key != null && !key.isBlank()) {
+                storageObjectLifecycleManager.deleteAfterCommit(key, actorId);
             }
         }
         if (!existingDocuments.isEmpty()) {
@@ -58,27 +66,32 @@ public class DocumentServiceImpl implements DocumentService {
             return;
         }
 
+        long totalUploadSize = files.stream().mapToLong(MultipartFile::getSize).sum();
+        if (totalUploadSize > maxTotalSize) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tổng dung lượng file vượt quá giới hạn " + (maxTotalSize / 1024 / 1024) + "MB");
+        }
+
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) {
                 continue;
             }
-            ResponseApi<DmsDocumentClientModel> response = dmsInternalFeignClient.uploadFile(
+            String s3Key = fileStorageRepository.uploadFile(
                     file,
                     destinationPath,
                     actorId,
-                    false
+                    maxTotalSize,
+                    allowTypesDocument
             );
-            DmsDocumentClientModel uploaded = response.data();
-            if (uploaded == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "DMS upload returned empty data");
-            }
+            storageObjectLifecycleManager.cleanupOnRollback(s3Key, actorId);
 
             documentRepository.save(Document.builder()
                     .documentScope(documentScope)
                     .documentType(documentType)
                     .entityId(entityId)
-                    .fileName(uploaded.originalFileName())
-                    .fileUrl(uploaded.objectKey())
+                    .fileName(file.getOriginalFilename())
+                    .fileUrl(s3Key)
                     .build());
         }
     }
