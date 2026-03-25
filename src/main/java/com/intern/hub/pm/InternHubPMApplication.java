@@ -15,12 +15,12 @@ import org.springframework.core.env.PropertySource;
 import java.util.ArrayList;
 import java.util.List;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = { UserDetailsServiceAutoConfiguration.class })
 @EnableSecurity
 @EnableGlobalExceptionHandler
 public class InternHubPMApplication {
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         SpringApplication application = new SpringApplication(InternHubPMApplication.class);
         application.run(args);
     }

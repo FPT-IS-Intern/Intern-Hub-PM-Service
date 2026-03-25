@@ -21,8 +21,8 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("API Quản Lý Ví Của User Intern Hub")
-                        .description("Tài liệu API cho nghiệp vụ ví và blockchain"))
+                        .title("API Quản Lý Dự Án Intern Hub")
+                        .description("Tài liệu API cho nghiệp vụ quản lý dự án"))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer"));
     }
 
