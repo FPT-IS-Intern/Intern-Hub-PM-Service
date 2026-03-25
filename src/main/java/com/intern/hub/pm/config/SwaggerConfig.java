@@ -22,28 +22,29 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API Quản Lý Dự Án Intern Hub")
-                        .version("1.0")
                         .description("Tài liệu API cho nghiệp vụ dự án, thành viên dự án, task và workflow nộp bài"))
-                .addSecurityItem(new SecurityRequirement().addList("Bearer"))
-                .components(new Components()
-                        .addSecuritySchemes("Bearer", new SecurityScheme()
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT"))
-                        .addSecuritySchemes("InternalAPIKey", new SecurityScheme()
-                                .type(SecurityScheme.Type.APIKEY)
-                                .in(SecurityScheme.In.HEADER)
-                                .name("X-Internal-Secret")));
+                .addSecurityItem(new SecurityRequirement().addList("Bearer"));
     }
 
     @Bean
     public OpenApiCustomizer openApiCustomizer() {
-        return openApi -> {
-            if (gatewayUrl != null && !gatewayUrl.isEmpty()) {
-                String serverUrl = gatewayUrl.endsWith("/") ? gatewayUrl + "api" : gatewayUrl + "/api";
-                openApi.addServersItem(new Server().url(serverUrl));
-            }
-        };
+        return openApi -> openApi
+                .addServersItem(new Server().url(gatewayUrl + "/api"))
+                .components((
+                        openApi.getComponents() == null ? new Components() : openApi.getComponents())
+                        .addSecuritySchemes(
+                                "Bearer",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT"))
+                        .addSecuritySchemes(
+                                "InternalAPIKey",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.APIKEY)
+                                        .in(SecurityScheme.In.HEADER)
+                                        .name("X-Internal-Secret"))
+                );
     }
 
 }

@@ -24,9 +24,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: ih_pm
+
+  springdoc:
+    api-docs:
+      enabled: true
+      path: /v3/api-docs
+    swagger-ui:
+      enabled: true
+
 server:
   port: 9000
-  forward-headers-strategy: framework
   tomcat:
     threads:
       max: 20
@@ -44,16 +51,6 @@ management:
     tracing:
       export:
         enabled: false
-
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-    groups:
-      enabled: true
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
 
 audit:
   data:
