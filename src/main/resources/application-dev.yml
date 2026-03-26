@@ -71,7 +71,7 @@ services:
     url: http://storage-service-g8egoo:8080
 
   hrm:
-    url: http://localhost:8081
+    url: http://internhub-v2-hrmservice-be-loriwy:8080
 
 aws:
   s3:

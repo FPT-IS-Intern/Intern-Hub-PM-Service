@@ -1,6 +1,7 @@
 package com.intern.hub.pm.repository;
 
 import com.intern.hub.pm.model.constant.Status;
+import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.project.ProjectMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +22,27 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     @Query("SELECT pm.userId FROM ProjectMember pm WHERE pm.project.id = :projectId AND pm.status = :status")
     List<Long> findUserIdsByProjectIdAndStatus(@Param("projectId") Long projectId, @Param("status") Status status);
+
+    @Query("""
+            SELECT COUNT(DISTINCT pm.project.id)
+            FROM ProjectMember pm
+            WHERE pm.userId = :userId
+              AND pm.status = :memberStatus
+              AND pm.project.status <> :projectStatus
+            """)
+    Long countActiveProjectsByUserId(@Param("userId") Long userId,
+                                     @Param("memberStatus") Status memberStatus,
+                                     @Param("projectStatus") StatusWork projectStatus);
+
+    @Query("""
+            SELECT pm.userId, COUNT(DISTINCT pm.project.id)
+            FROM ProjectMember pm
+            WHERE pm.userId IN :userIds
+              AND pm.status = :memberStatus
+              AND pm.project.status <> :projectStatus
+            GROUP BY pm.userId
+            """)
+    List<Object[]> countActiveProjectsByUserIds(@Param("userIds") List<Long> userIds,
+                                                @Param("memberStatus") Status memberStatus,
+                                                @Param("projectStatus") StatusWork projectStatus);
 }

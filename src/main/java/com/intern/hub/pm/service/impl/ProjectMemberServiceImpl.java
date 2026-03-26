@@ -27,7 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.intern.hub.library.common.dto.ResponseApi.*;
 
@@ -63,9 +66,20 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         getActiveProject(projectId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
         Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId, Status.ACTIVE, pageable);
+        List<Long> userIds = memberPage.getContent().stream()
+                .map(ProjectMember::getUserId)
+                .distinct()
+                .toList();
+
+        Map<Long, Long> projectCountByUserId = getProjectCountByUserIds(userIds);
+        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
 
         List<ProjectMemberResponse> items = memberPage.getContent().stream()
-                .map(this::toResponse)
+                .map(member -> toResponse(
+                        member, 
+                        projectCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        userDetailMap.get(member.getUserId())
+                ))
                 .toList();
 
         return PaginatedData.<ProjectMemberResponse>builder()
@@ -121,15 +135,53 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     private ProjectMemberResponse toResponse(ProjectMember member) {
+        Long countProjectTeam = projectMemberRepository.countActiveProjectsByUserId(
+                member.getUserId(),
+                Status.ACTIVE,
+                StatusWork.CANCELED
+        );
+        HrmUserClientModel userDetail = hrmInternalFeignClient.getUserByIdInternal(member.getUserId()).data();
+        return toResponse(member, countProjectTeam, userDetail);
+    }
+
+    private ProjectMemberResponse toResponse(ProjectMember member, Long countProjectTeam, HrmUserClientModel userDetail) {
         return new ProjectMemberResponse(
                 member.getId(),
                 member.getProject().getId(),
                 member.getUserId(),
+                userDetail != null ? userDetail.fullName() : null,
+                userDetail != null ? userDetail.email() : null,
+                countProjectTeam,
                 member.getRole(),
                 member.getStatus(),
                 member.getCreatedAt(),
                 member.getUpdatedAt()
         );
+    }
+
+    private Map<Long, HrmUserClientModel> getUserDetailMap(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
+        if (hrmResponse.data() == null) {
+            return Collections.emptyMap();
+        }
+        return hrmResponse.data().stream()
+                .collect(Collectors.toMap(HrmUserClientModel::userId, user -> user));
+    }
+
+    private Map<Long, Long> getProjectCountByUserIds(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return projectMemberRepository.countActiveProjectsByUserIds(userIds, Status.ACTIVE, StatusWork.CANCELED)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
     }
 
     @Override

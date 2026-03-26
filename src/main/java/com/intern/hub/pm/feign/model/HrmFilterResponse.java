@@ -1,5 +1,8 @@
 package com.intern.hub.pm.feign.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +17,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class HrmFilterResponse {
     Integer no;
+    
+    @JsonSerialize(using = ToStringSerializer.class)
     Long userId;
     String avatarUrl;
     String fullName;
