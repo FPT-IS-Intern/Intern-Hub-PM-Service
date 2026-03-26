@@ -48,7 +48,7 @@ public class DmsStorageService implements FileStorageRepository {
         try {
             Long requestActorId = actorId != null ? actorId : systemActorId;
             ResponseApi<DmsDocumentClientModel> response =
-                    dmsInternalFeignClient.uploadFile(file, keyPrefix, requestActorId);
+                    dmsInternalFeignClient.uploadFile(file, keyPrefix, requestActorId, false);
 
             if (response == null || response.data() == null || !hasText(response.data().objectKey())) {
                 throw new ResponseStatusException(

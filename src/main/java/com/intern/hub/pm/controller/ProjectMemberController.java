@@ -28,9 +28,9 @@ public class ProjectMemberController {
 
     @PostMapping("/{projectId}/users")
     @Operation(summary = "Thêm thành viên dự án", description = "Thêm mới một thành viên đang hoạt động vào dự án.")
-    public ResponseApi<ProjectMemberResponse> addMember(@PathVariable Long projectId,
-                                           @Valid @RequestBody ProjectMemberCreateRequest request)
-    {
+    public ResponseApi<ProjectMemberResponse> addMember(
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectMemberCreateRequest request) {
         return ResponseApi.ok(projectMemberService.addMember(projectId, request));
     }
 
@@ -40,23 +40,20 @@ public class ProjectMemberController {
             @PathVariable Long projectId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    )
-    {
+    ) {
         return ResponseApi.ok(projectMemberService.getMembers(projectId, page, size));
     }
 
     @PutMapping("/users/{memberId}")
     @Operation(summary = "Cập nhật thành viên dự án", description = "Cập nhật vai trò của thành viên trong dự án.")
     public ResponseApi<ProjectMemberResponse> updateMember(@PathVariable Long memberId,
-                                              @Valid @RequestBody ProjectMemberUpdateRequest request)
-    {
+                                                           @Valid @RequestBody ProjectMemberUpdateRequest request) {
         return ResponseApi.ok(projectMemberService.updateMember(memberId, request));
     }
 
     @DeleteMapping("/users/{memberId}")
     @Operation(summary = "Xóa thành viên dự án", description = "Xóa mềm thành viên dự án bằng cách đổi trạng thái sang DELETED.")
-    public ResponseApi<?> deleteMember(@PathVariable Long memberId)
-    {
+    public ResponseApi<?> deleteMember(@PathVariable Long memberId) {
         projectMemberService.deleteMember(memberId);
         return ResponseApi.noContent();
     }

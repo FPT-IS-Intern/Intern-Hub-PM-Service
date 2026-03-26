@@ -1,6 +1,7 @@
 package com.intern.hub.pm.controller;
 
 import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
@@ -78,7 +79,7 @@ public class ProjectController {
         return ResponseApi.ok(projectService.updateProject(projectId, request, files));
     }
 
-    @DeleteMapping("/{projectId}")
+    @DeleteMapping("/{projectId}")// xong
     @Operation(summary = "Hủy dự án", description = "Hủy mềm dự án bằng cách chuyển trạng thái sang CANCELED.")
     public ResponseApi<?> deleteProject(@PathVariable Long projectId) {
         projectService.deleteProject(projectId);
@@ -93,10 +94,19 @@ public class ProjectController {
 //    }
 
     @PostMapping("/{projectId}/complete")
-    @Operation(summary = "Hoàn thành dự án", description = "Đánh dấu dự án hoàn thành khi không còn task nào đang chờ duyệt.")
+    @Operation(summary = "Nộp dự án dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> completeProject(
             @PathVariable Long projectId,
             @Valid @RequestBody ProjectCompleteRequest request) {
         return ResponseApi.ok(projectService.completeProject(projectId, request));
+    }
+
+    @PostMapping("/{projectId}/approve")
+    @Operation(summary = "Duyệt dự án", description = "Duyệt dự án hoàn thành khi không còn team nào đang chờ duyệt.")
+    public ResponseApi<ProjectResponse> approveProject(
+            @PathVariable Long projectId,
+            @Valid @RequestBody ApproveRequest request) {
+        return null;
+//        return ResponseApi.ok(projectService.completeProject(projectId, request));
     }
 }

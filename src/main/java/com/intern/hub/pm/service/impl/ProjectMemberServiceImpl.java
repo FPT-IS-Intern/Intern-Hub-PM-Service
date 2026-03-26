@@ -1,5 +1,6 @@
 package com.intern.hub.pm.service.impl;
 
+import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.pm.dto.project.member.ProjectMemberCreateRequest;
 import com.intern.hub.pm.dto.project.member.ProjectMemberResponse;
 import com.intern.hub.pm.dto.project.member.ProjectMemberUpdateRequest;
@@ -12,6 +13,10 @@ import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.service.ProjectMemberService;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +36,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     public ProjectMemberResponse addMember(Long projectId, ProjectMemberCreateRequest request) {
         Project project = getOwnedActiveProject(projectId);
         if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(), Status.ACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User is already a project member");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User đã là thành viên của dự án");
         }
 
         ProjectMember member = ProjectMember.builder()
@@ -46,16 +51,16 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     @Override
     @Transactional(readOnly = true)
-    public com.intern.hub.library.common.dto.PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size) {
+    public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size) {
         getActiveProject(projectId);
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "createdAt"));
-        org.springframework.data.domain.Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId, Status.ACTIVE, pageable);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId, Status.ACTIVE, pageable);
 
         List<ProjectMemberResponse> items = memberPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
 
-        return com.intern.hub.library.common.dto.PaginatedData.<ProjectMemberResponse>builder()
+        return PaginatedData.<ProjectMemberResponse>builder()
                 .items(items)
                 .totalItems(memberPage.getTotalElements())
                 .totalPages(memberPage.getTotalPages())

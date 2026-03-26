@@ -31,9 +31,6 @@ public interface HrmInternalFeignClient {
     @PostMapping("/hrm/internal/users/by-ids")
     ResponseApi<List<HrmUserClientModel>> getUsersByIdsInternal(@RequestBody List<Long> userIds);
 
-    @GetMapping("/hrm/internal/users/search")
-    ResponseApi<List<HrmUserClientModel>> searchUsersInternal(@RequestParam("keyword") String keyword);
-
     @PostMapping("/hrm/internal/users/internal/filter")
     ResponseApi<PaginatedData<HrmFilterResponse>> filterUsers(
             @RequestBody HrmFilterRequest request,
