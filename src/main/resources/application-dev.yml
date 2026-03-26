@@ -71,7 +71,7 @@ services:
     url: http://storage-service-g8egoo:8080
 
   hrm:
-    url: localhost:8081
+    url: http://localhost:8081
 
 aws:
   s3:

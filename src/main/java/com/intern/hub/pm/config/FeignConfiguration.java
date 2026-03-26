@@ -15,6 +15,15 @@ public class FeignConfiguration {
 
     @Bean
     public RequestInterceptor internalSecretHeaderInterceptor() {
-        return requestTemplate -> requestTemplate.header("X-Internal-Secret", internalSecret);
+        return requestTemplate -> {
+            if (internalSecret == null) {
+                return;
+            }
+
+            String normalizedSecret = internalSecret.trim();
+            if (!normalizedSecret.isEmpty()) {
+                requestTemplate.header("X-Internal-Secret", normalizedSecret);
+            }
+        };
     }
 }

@@ -28,4 +28,9 @@ public class InternalUserController {
     public ResponseApi<HrmUserClientModel> getUserByEmail(@RequestParam("email") String email) {
         return hrmInternalFeignClient.getUserByEmailInternal(email);
     }
+
+    @GetMapping("/users/search")
+    public ResponseApi<java.util.List<HrmUserClientModel>> searchUsers(@RequestParam("keyword") String keyword) {
+        return hrmInternalFeignClient.searchUsersInternal(keyword);
+    }
 }
