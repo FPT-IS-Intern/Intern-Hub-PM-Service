@@ -1,5 +1,6 @@
 package com.intern.hub.pm.service.impl;
 
+import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
@@ -20,6 +21,8 @@ import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -46,9 +49,9 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional(readOnly = true)
-    public com.intern.hub.library.common.dto.PaginatedData<ProjectResponse> getProjects(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, PROJECT_SORT);
-        org.springframework.data.domain.Page<Project> projectPage = projectRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
+    public PaginatedData<ProjectResponse> getProjects(int page, int size) {
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, PROJECT_SORT);
+        Page<Project> projectPage = projectRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
 
         List<ProjectResponse> items = projectPage.getContent().stream()
                 .map(this::toResponse)
