@@ -26,6 +26,17 @@ public class UserfiterController {
             @RequestBody HrmFilterRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        
+        if (request.getSysStatuses() != null && request.getSysStatuses().isEmpty()) {
+            request.setSysStatuses(null);
+        }
+        if (request.getRoles() != null && request.getRoles().isEmpty()) {
+            request.setRoles(null);
+        }
+        if (request.getPositions() != null && request.getPositions().isEmpty()) {
+            request.setPositions(null);
+        }
+
         return hrmInternalFeignClient.filterUsers(request, page, size);
     }
 }

@@ -9,7 +9,6 @@ import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -75,8 +74,7 @@ public class ProjectController {
     public ResponseApi<ProjectResponse> updateProject(
             @PathVariable Long projectId,
             @Valid @RequestPart("request") ProjectUpsertRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files)
-    {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         return ResponseApi.ok(projectService.updateProject(projectId, request, files));
     }
 
@@ -96,15 +94,9 @@ public class ProjectController {
 
     @PostMapping("/{projectId}/complete")
     @Operation(summary = "Hoàn thành dự án", description = "Đánh dấu dự án hoàn thành khi không còn task nào đang chờ duyệt.")
-    public ResponseApi<ProjectResponse> completeProject(@PathVariable Long projectId,
-                                                        @Valid @RequestBody ProjectCompleteRequest request) {
+    public ResponseApi<ProjectResponse> completeProject(
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectCompleteRequest request) {
         return ResponseApi.ok(projectService.completeProject(projectId, request));
-    }
-
-    @GetMapping("/test")
-    public ResponseEntity<?> test() {
-        AuthContext context = AuthContextHolder.get().orElseThrow();
-        Long userId = context.userId();
-        return ResponseEntity.ok(userId);
     }
 }
