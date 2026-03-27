@@ -12,7 +12,9 @@ import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.team.Team;
+import com.intern.hub.pm.model.team.TeamMember;
 import com.intern.hub.pm.repository.ProjectRepository;
+import com.intern.hub.pm.repository.TeamMemberRepository;
 import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.TeamService;
@@ -41,6 +43,7 @@ public class TeamServiceImpl implements TeamService {
 
     private final TeamRepository teamRepository;
     private final ProjectRepository projectRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final DocumentService documentService;
 
     @Override
@@ -83,6 +86,18 @@ public class TeamServiceImpl implements TeamService {
                 .build();
 
         Team savedTeam = teamRepository.save(team);
+
+        // Save team members if present
+        if (request.memberList() != null && !request.memberList().isEmpty()) {
+            List<TeamMember> teamMembers = request.memberList().stream()
+                    .map(m -> TeamMember.builder()
+                            .userId(m.userId())
+                            .status(com.intern.hub.pm.model.constant.Status.ACTIVE)
+                            .team(savedTeam)
+                            .build())
+                    .toList();
+            teamMemberRepository.saveAll(teamMembers);
+        }
 
         documentService.replaceDocuments(
                 savedTeam.getId(),
