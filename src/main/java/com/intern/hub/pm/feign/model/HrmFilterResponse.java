@@ -1,5 +1,6 @@
 package com.intern.hub.pm.feign.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
@@ -18,6 +19,7 @@ import lombok.experimental.FieldDefaults;
 public class HrmFilterResponse {
     Integer no;
     
+    @JsonProperty("userId")
     @JsonSerialize(using = ToStringSerializer.class)
     Long userId;
     String avatarUrl;
