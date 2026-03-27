@@ -20,8 +20,7 @@ public class HrmFilterResponse {
     Integer no;
     
     @JsonProperty("userId")
-    @JsonSerialize(using = ToStringSerializer.class)
-    Long userId;
+    String userId;
     String avatarUrl;
     String fullName;
     String sysStatus;
