@@ -48,9 +48,15 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedData<TeamResponse> getTeams(int page, int size) {
+    public PaginatedData<TeamResponse> getTeams(Long projectId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, TEAM_SORT);
-        Page<Team> teamPage = teamRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
+        Page<Team> teamPage;
+        
+        if (projectId != null) {
+            teamPage = teamRepository.findAllByProjectIdAndStatusNot(projectId, StatusWork.CANCELED, pageable);
+        } else {
+            teamPage = teamRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
+        }
 
         return PaginatedData.<TeamResponse>builder()
                 .items(teamPage.getContent().stream().map(this::toResponse).toList())

@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface TeamService {
 
-    PaginatedData<TeamResponse> getTeams(int page, int size);
+    PaginatedData<TeamResponse> getTeams(Long projectId, int page, int size);
 
     TeamResponse getTeam(Long teamId);
 

@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
     Page<Team> findAllByStatusNot(StatusWork status, Pageable pageable);
+    
+    Page<Team> findAllByProjectIdAndStatusNot(Long projectId, StatusWork status, Pageable pageable);
 }

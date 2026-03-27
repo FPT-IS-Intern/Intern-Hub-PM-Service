@@ -43,10 +43,10 @@ public class TeamController {
     @GetMapping
     @Operation(summary = "Lấy danh sách dự án team", description = "Danh sách dự án của team.")
     public ResponseApi<PaginatedData<TeamResponse>> getTeams(
+            @RequestParam(required = false) Long projectId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return ResponseApi.ok(teamService.getTeams(page, size));
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseApi.ok(teamService.getTeams(projectId, page, size));
     }
 
     @GetMapping("/{teamId}")
@@ -60,10 +60,10 @@ public class TeamController {
     @Authenticated
     public ResponseApi<TeamResponse> createTeam(
             @Valid @RequestPart("request") TeamUpsertRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         AuthContext context = AuthContextHolder.get()
-                .orElseThrow(() -> new ForbiddenException("Khong tim thay thong tin xac thuc. Vui long kiem tra lai token hoac cac header (X-UserId, X-Authenticated)."));
+                .orElseThrow(() -> new ForbiddenException(
+                        "Khong tim thay thong tin xac thuc. Vui long kiem tra lai token hoac cac header (X-UserId, X-Authenticated)."));
         return ResponseApi.ok(teamService.createTeam(context.userId(), request, files));
     }
 
@@ -73,8 +73,7 @@ public class TeamController {
     public ResponseApi<TeamResponse> updateTeam(
             @PathVariable Long teamId,
             @Valid @RequestPart("request") TeamUpsertRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         return ResponseApi.ok(teamService.updateTeam(teamId, request, files));
     }
 
@@ -89,8 +88,7 @@ public class TeamController {
     @Operation(summary = "Nộp đán án dự án team", description = "Nộp đáp án và chuyển trạng thái của dự án sang chờ duyệt.")
     public ResponseApi<TeamResponse> completeTeam(
             @PathVariable Long teamId,
-            @Valid @RequestBody TeamCompleteRequest request
-    ) {
+            @Valid @RequestBody TeamCompleteRequest request) {
         return ResponseApi.ok(teamService.completeTeam(teamId, request));
     }
 
@@ -98,8 +96,7 @@ public class TeamController {
     @Operation(summary = "Duyệt team", description = "Duyệt dự án team cấp token.")
     public ResponseApi<TeamResponse> approveTeam(
             @PathVariable Long teamId,
-            @Valid @RequestBody ApproveRequest request
-    ) {
+            @Valid @RequestBody ApproveRequest request) {
         return ResponseApi.ok(teamService.approveTeam(teamId, request));
     }
 }
