@@ -77,7 +77,7 @@ public class TeamServiceImpl implements TeamService {
             try {
                 var response = hrmInternalFeignClient.getUsersByIdsInternal(leadIds);
                 if (response != null && response.data() != null) {
-                    response.data().forEach(u -> leadNameMap.put(u.userId(), u.fullName()));
+                    response.data().forEach(u -> leadNameMap.put(Long.valueOf(u.userId()), u.fullName()));
                 }
             } catch (Exception e) {
                 // Keep default IDs if HRM call fails
