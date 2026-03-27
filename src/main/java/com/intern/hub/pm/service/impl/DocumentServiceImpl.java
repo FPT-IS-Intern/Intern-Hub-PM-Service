@@ -37,7 +37,12 @@ public class DocumentServiceImpl implements DocumentService {
     public List<DocumentResponse> getDocuments(Long entityId, DocumentScope documentScope, DocumentType documentType) {
         return documentRepository.findAllByEntityIdAndDocumentScopeAndDocumentType(entityId, documentScope, documentType)
                 .stream()
-                .map(document -> new DocumentResponse(document.getId(), document.getFileName(), document.getFileUrl()))
+                .map(document -> new DocumentResponse(
+                        document.getId(),
+                        document.getFileName(),
+                        document.getFileUrl(),
+                        document.getCreatedAt()
+                ))
                 .toList();
     }
 

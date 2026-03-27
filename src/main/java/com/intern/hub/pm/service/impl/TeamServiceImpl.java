@@ -7,6 +7,7 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.TeamCompleteRequest;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.dto.team.TeamUpsertRequest;
+import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
@@ -33,6 +34,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -45,6 +49,7 @@ public class TeamServiceImpl implements TeamService {
     private final ProjectRepository projectRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final DocumentService documentService;
+    private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,8 +63,31 @@ public class TeamServiceImpl implements TeamService {
             teamPage = teamRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
         }
 
+        List<Team> teams = teamPage.getContent();
+        
+        // Batch fetch lead names
+        List<Long> leadIds = teams.stream()
+                .map(Team::getAssigneeId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        
+        java.util.Map<Long, String> leadNameMap = new java.util.HashMap<>();
+        if (!leadIds.isEmpty()) {
+            try {
+                var response = hrmInternalFeignClient.getUsersByIdsInternal(leadIds);
+                if (response != null && response.data() != null) {
+                    response.data().forEach(u -> leadNameMap.put(u.userId(), u.fullName()));
+                }
+            } catch (Exception e) {
+                // Keep default IDs if HRM call fails
+            }
+        }
+
         return PaginatedData.<TeamResponse>builder()
-                .items(teamPage.getContent().stream().map(this::toResponse).toList())
+                .items(teams.stream()
+                        .map(t -> toResponseWithLead(t, leadNameMap.getOrDefault(t.getAssigneeId(), "Lead (ID: " + t.getAssigneeId() + ")")))
+                        .toList())
                 .totalItems(teamPage.getTotalElements())
                 .totalPages(teamPage.getTotalPages())
                 .build();
@@ -218,11 +246,28 @@ public class TeamServiceImpl implements TeamService {
     }
 
     private TeamResponse toResponse(Team team) {
+        String leadName = "Lead (ID: " + team.getAssigneeId() + ")";
+        if (team.getAssigneeId() != null) {
+            try {
+                var response = hrmInternalFeignClient.getUserByIdInternal(team.getAssigneeId());
+                if (response != null && response.data() != null) {
+                    leadName = response.data().fullName();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+        return toResponseWithLead(team, leadName);
+    }
+
+    private TeamResponse toResponseWithLead(Team team, String leadName) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 team.getId(),
                 DocumentScope.TEAM,
                 DocumentType.CHARTER
         );
+
+        Integer memberCount = teamMemberRepository.countByTeamIdAndStatus(team.getId(), com.intern.hub.pm.model.constant.Status.ACTIVE);
 
         return new TeamResponse(
                 team.getId(),
@@ -242,6 +287,8 @@ public class TeamServiceImpl implements TeamService {
                 team.getStartDate(),
                 team.getEndDate(),
                 charterDocuments,
+                leadName,
+                memberCount != null ? memberCount : 0,
                 team.getCreatedAt(),
                 team.getUpdatedAt()
         );
