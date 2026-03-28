@@ -7,8 +7,11 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.TeamCompleteRequest;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.dto.team.TeamUpsertRequest;
+import com.intern.hub.pm.dto.team.TeamFilterRequest;
+import com.intern.hub.pm.dto.team.TeamStatisticsResponse;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.model.constant.StatusWork;
+import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.model.project.Project;
@@ -54,14 +57,15 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedData<TeamResponse> getTeams(Long projectId, int page, int size) {
+        return getTeams(TeamFilterRequest.builder().projectId(projectId).build(), page, size);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<TeamResponse> getTeams(TeamFilterRequest filter, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, TEAM_SORT);
-        Page<Team> teamPage;
-        
-        if (projectId != null) {
-            teamPage = teamRepository.findAllByProjectIdAndStatusNot(projectId, StatusWork.CANCELED, pageable);
-        } else {
-            teamPage = teamRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
-        }
+        org.springframework.data.jpa.domain.Specification<Team> spec = TeamSpecification.filter(filter);
+        Page<Team> teamPage = teamRepository.findAll(spec, pageable);
 
         List<Team> teams = teamPage.getContent();
         
@@ -91,6 +95,28 @@ public class TeamServiceImpl implements TeamService {
                 .totalItems(teamPage.getTotalElements())
                 .totalPages(teamPage.getTotalPages())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TeamStatisticsResponse getTeamStatistics(Long projectId) {
+        if (projectId != null) {
+            return TeamStatisticsResponse.builder()
+                    .totalTeams(teamRepository.countByProjectIdAndStatusNot(projectId, StatusWork.CANCELED))
+                    .notStartedTeams(teamRepository.countByProjectIdAndStatus(projectId, StatusWork.NOT_STARTED))
+                    .inProgressTeams(teamRepository.countByProjectIdAndStatus(projectId, StatusWork.IN_PROGRESS))
+                    .completedTeams(teamRepository.countByProjectIdAndStatus(projectId, StatusWork.COMPLETED))
+                    .overdueTeams(teamRepository.countByProjectIdAndStatus(projectId, StatusWork.OVERDUE))
+                    .build();
+        } else {
+            return TeamStatisticsResponse.builder()
+                    .totalTeams(teamRepository.countByStatusNot(StatusWork.CANCELED))
+                    .notStartedTeams(teamRepository.countByStatus(StatusWork.NOT_STARTED))
+                    .inProgressTeams(teamRepository.countByStatus(StatusWork.IN_PROGRESS))
+                    .completedTeams(teamRepository.countByStatus(StatusWork.COMPLETED))
+                    .overdueTeams(teamRepository.countByStatus(StatusWork.OVERDUE))
+                    .build();
+        }
     }
 
     @Override

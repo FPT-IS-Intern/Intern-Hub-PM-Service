@@ -7,6 +7,8 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.TeamCompleteRequest;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.dto.team.TeamUpsertRequest;
+import com.intern.hub.pm.dto.team.TeamFilterRequest;
+import com.intern.hub.pm.dto.team.TeamStatisticsResponse;
 import com.intern.hub.pm.service.TeamService;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
@@ -41,12 +43,29 @@ public class TeamController {
     private final TeamService teamService;
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách dự án team", description = "Danh sách dự án của team.")
+    @Operation(summary = "Lấy danh sách dự án team", description = "Danh sách dự án của team có phân trang và lọc.")
     public ResponseApi<PaginatedData<TeamResponse>> getTeams(
             @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) com.intern.hub.pm.model.constant.StatusWork status,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(teamService.getTeams(projectId, page, size));
+        TeamFilterRequest filter = TeamFilterRequest.builder()
+                .projectId(projectId)
+                .name(name)
+                .status(status)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+        return ResponseApi.ok(teamService.getTeams(filter, page, size));
+    }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "Lấy thống kê team", description = "Trả về số lượng team theo từng trạng thái.")
+    public ResponseApi<TeamStatisticsResponse> getTeamStatistics(@RequestParam(required = false) Long projectId) {
+        return ResponseApi.ok(teamService.getTeamStatistics(projectId));
     }
 
     @GetMapping("/{teamId}")

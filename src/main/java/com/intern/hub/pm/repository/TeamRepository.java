@@ -2,13 +2,14 @@ package com.intern.hub.pm.repository;
 
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.team.Team;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface TeamRepository extends JpaRepository<Team, Long> {
+public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificationExecutor<Team> {
 
-    Page<Team> findAllByStatusNot(StatusWork status, Pageable pageable);
-    
-    Page<Team> findAllByProjectIdAndStatusNot(Long projectId, StatusWork status, Pageable pageable);
+    long countByProjectIdAndStatusNot(Long projectId, StatusWork status);
+    long countByStatusNot(StatusWork status);
+
+    long countByProjectIdAndStatus(Long projectId, StatusWork status);
+    long countByStatus(StatusWork status);
 }

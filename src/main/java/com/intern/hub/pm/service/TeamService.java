@@ -5,6 +5,8 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.TeamCompleteRequest;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.dto.team.TeamUpsertRequest;
+import com.intern.hub.pm.dto.team.TeamFilterRequest;
+import com.intern.hub.pm.dto.team.TeamStatisticsResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -12,6 +14,10 @@ import java.util.List;
 public interface TeamService {
 
     PaginatedData<TeamResponse> getTeams(Long projectId, int page, int size);
+
+    PaginatedData<TeamResponse> getTeams(TeamFilterRequest filter, int page, int size);
+
+    TeamStatisticsResponse getTeamStatistics(Long projectId);
 
     TeamResponse getTeam(Long teamId);
 
