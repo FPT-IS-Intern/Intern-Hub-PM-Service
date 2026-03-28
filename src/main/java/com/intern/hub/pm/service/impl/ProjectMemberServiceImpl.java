@@ -207,11 +207,11 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     public ResponseApi<PaginatedData<HrmFilterResponse>> searchProjectMembers(Long projectId,
                                                                               HrmFilterRequest request,
                                                                               int page, int size) {
-        // 1. Fetch exactly the IDs belonging to the project.
-        List<Long> projectUserIds = projectMemberRepository.findUserIdsByProjectIdAndStatus(projectId,
-                Status.ACTIVE);
+        // 1. Fetch ProjectMember entities to get project-specific roles
+        List<ProjectMember> projectMembers = projectMemberRepository
+                .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
 
-        if (projectUserIds.isEmpty()) {
+        if (projectMembers.isEmpty()) {
             return ResponseApi.ok(
                     PaginatedData.<HrmFilterResponse>builder()
                             .items(java.util.Collections.emptyList())
@@ -219,6 +219,14 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                             .totalPages(0)
                             .build());
         }
+
+        // Build a map of userId -> project role
+        Map<Long, String> userRoleMap = projectMembers.stream()
+                .collect(Collectors.toMap(ProjectMember::getUserId, ProjectMember::getRole,
+                        (existing, replacement) -> existing));
+
+        List<Long> projectUserIds = projectMembers.stream()
+                .map(ProjectMember::getUserId).toList();
 
         // 2. Fetch full user models by IDs from HRM
         ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient
@@ -233,7 +241,6 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                             .build());
         }
 
-        // 3. Filter the returned list by keyword locally
         String keyword = request.getKeyword() != null ? request.getKeyword().toLowerCase().trim() : "";
         List<HrmFilterResponse> filteredUsers = hrmResponse.data().stream()
                 .filter(u -> keyword.isEmpty()
@@ -245,11 +252,11 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                         .fullName(u.fullName())
                         .email(u.email())
                         .avatarUrl(u.avatarUrl())
-                        .role(u.roleId())
+                        .role(u.userId() != null ? userRoleMap.get(Long.valueOf(u.userId()))
+                                : null)
                         .build())
                 .toList();
 
-        // 4. Implement manual pagination
         int start = page * size;
         int end = Math.min(start + size, filteredUsers.size());
         List<HrmFilterResponse> pagedUsers = start <= end && start <= filteredUsers.size()
