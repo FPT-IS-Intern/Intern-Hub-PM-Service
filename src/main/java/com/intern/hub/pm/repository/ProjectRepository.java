@@ -1,13 +1,21 @@
 package com.intern.hub.pm.repository;
 
+import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.project.Project;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface ProjectRepository extends JpaRepository<Project, Long> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-    List<Project> findAllByStatusNot(com.intern.hub.pm.model.constant.StatusWork status, Sort sort);
-    org.springframework.data.domain.Page<Project> findAllByStatusNot(com.intern.hub.pm.model.constant.StatusWork status, org.springframework.data.domain.Pageable pageable);
+public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpecificationExecutor<Project> {
+
+    List<Project> findAllByStatusNot(StatusWork status, Sort sort);
+    Page<Project> findAllByStatusNot(StatusWork status, Pageable pageable);
+
+    long countByStatusNot(StatusWork status);
+    long countByStatus(StatusWork status);
 }

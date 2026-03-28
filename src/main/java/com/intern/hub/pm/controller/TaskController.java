@@ -47,7 +47,7 @@ public class TaskController {
     }
 
     @GetMapping("/projects/{projectId}/tasks")
-    @Operation(summary = "Lấy danh sách task theo dự án", description = "Trả về danh sách task của dự án có phân trang.")
+    @Operation(summary = "Lấy danh sách task theo dự án team", description = "Trả về danh sách task của dự án có phân trang.")
     public ResponseApi<PaginatedData<TaskResponse>> getProjectTasks(
             @PathVariable Long projectId,
             @RequestParam(defaultValue = "0") int page,

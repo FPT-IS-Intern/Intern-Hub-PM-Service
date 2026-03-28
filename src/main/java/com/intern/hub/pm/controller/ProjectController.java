@@ -5,6 +5,8 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
+import com.intern.hub.pm.dto.project.ProjectFilterRequest;
+import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
@@ -41,12 +43,28 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách dự án", description = "Trả về danh sách dự án có phân trang.")
+    @Operation(summary = "Lấy danh sách dự án", description = "Trả về danh sách dự án có phân trang và lọc theo tiêu chí.")
     public ResponseApi<PaginatedData<ProjectResponse>> getProjects(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) com.intern.hub.pm.model.constant.StatusWork status,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseApi.ok(projectService.getProjects(page, size));
+        ProjectFilterRequest filter = ProjectFilterRequest.builder()
+                .name(name)
+                .status(status)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+        return ResponseApi.ok(projectService.getProjects(filter, page, size));
+    }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "Lấy thống kê dự án", description = "Trả về số lượng dự án theo từng trạng thái.")
+    public ResponseApi<ProjectStatisticsResponse> getProjectStatistics() {
+        return ResponseApi.ok(projectService.getProjectStatistics());
     }
 
     @GetMapping("/{projectId}")
@@ -60,12 +78,12 @@ public class ProjectController {
     @Authenticated
     public ResponseApi<ProjectResponse> createProject(
             @Valid @RequestPart("request") ProjectUpsertRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         AuthContext context = AuthContextHolder.get()
-                .orElseThrow(() -> new ForbiddenException("Không tìm thấy thông tin xác thực. Vui lòng kiểm tra lại token hoặc các header (X-UserId, X-Authenticated)."));
+                .orElseThrow(() -> new ForbiddenException(
+                        "Không tìm thấy thông tin xác thực. Vui lòng kiểm tra lại token hoặc các header (X-UserId, X-Authenticated)."));
         Long userId = context.userId();
-//        Long userId = 159220116939083776L;
+        // Long userId = 159220116939083776L;
         return ResponseApi.ok(projectService.createProject(userId, request, files));
     }
 
@@ -79,19 +97,20 @@ public class ProjectController {
         return ResponseApi.ok(projectService.updateProject(projectId, request, files));
     }
 
-    @DeleteMapping("/{projectId}")// xong
+    @DeleteMapping("/{projectId}") // xong
     @Operation(summary = "Hủy dự án", description = "Hủy mềm dự án bằng cách chuyển trạng thái sang CANCELED.")
     public ResponseApi<?> deleteProject(@PathVariable Long projectId) {
         projectService.deleteProject(projectId);
         return ResponseApi.noContent();
     }
 
-//    @PostMapping("/{projectId}/extend")
-//    @Operation(summary = "Gia hạn dự án", description = "Cập nhật thời gian kết thúc và lưu lý do gia hạn dự án.")
-//    public ProjectResponse extendProject(@PathVariable Long projectId,
-//                                         @Valid @RequestBody ProjectExtendRequest request) {
-//        return projectService.extendProject(projectId, request);
-//    }
+    // @PostMapping("/{projectId}/extend")
+    // @Operation(summary = "Gia hạn dự án", description = "Cập nhật thời gian kết
+    // thúc và lưu lý do gia hạn dự án.")
+    // public ProjectResponse extendProject(@PathVariable Long projectId,
+    // @Valid @RequestBody ProjectExtendRequest request) {
+    // return projectService.extendProject(projectId, request);
+    // }
 
     @PostMapping("/{projectId}/complete")
     @Operation(summary = "Nộp dự án dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
@@ -107,6 +126,6 @@ public class ProjectController {
             @PathVariable Long projectId,
             @Valid @RequestBody ApproveRequest request) {
         return null;
-//        return ResponseApi.ok(projectService.completeProject(projectId, request));
+        // return ResponseApi.ok(projectService.completeProject(projectId, request));
     }
 }

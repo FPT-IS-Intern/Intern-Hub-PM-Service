@@ -7,7 +7,9 @@ import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectExtendRequest;
 import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
-import com.intern.hub.pm.dto.project.member.ProjectMemberCreateRequest;
+import com.intern.hub.pm.dto.project.ProjectFilterRequest;
+import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
+import com.intern.hub.pm.repository.specification.ProjectSpecification;
 import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
@@ -22,8 +24,10 @@ import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +37,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -50,17 +53,36 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedData<ProjectResponse> getProjects(int page, int size) {
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, PROJECT_SORT);
-        Page<Project> projectPage = projectRepository.findAllByStatusNot(StatusWork.CANCELED, pageable);
+        return getProjects(new ProjectFilterRequest(), page, size);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<ProjectResponse> getProjects(ProjectFilterRequest filter, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, PROJECT_SORT);
+        Specification<Project> spec = ProjectSpecification.filter(filter);
+        Page<Project> projectPage = projectRepository.findAll(spec, pageable);
 
         List<ProjectResponse> items = projectPage.getContent().stream()
                 .map(this::toResponse)
                 .toList();
 
-        return com.intern.hub.library.common.dto.PaginatedData.<ProjectResponse>builder()
+        return PaginatedData.<ProjectResponse>builder()
                 .items(items)
                 .totalItems(projectPage.getTotalElements())
                 .totalPages(projectPage.getTotalPages())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProjectStatisticsResponse getProjectStatistics() {
+        return ProjectStatisticsResponse.builder()
+                .totalProjects(projectRepository.countByStatusNot(StatusWork.CANCELED))
+                .notStartedProjects(projectRepository.countByStatus(StatusWork.NOT_STARTED))
+                .inProgressProjects(projectRepository.countByStatus(StatusWork.IN_PROGRESS))
+                .completedProjects(projectRepository.countByStatus(StatusWork.COMPLETED))
+                .overdueProjects(projectRepository.countByStatus(StatusWork.OVERDUE))
                 .build();
     }
 

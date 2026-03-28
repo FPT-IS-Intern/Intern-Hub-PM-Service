@@ -1,16 +1,18 @@
 package com.intern.hub.pm.service;
 
-import com.intern.hub.pm.dto.project.ProjectResponse;
-import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
-import com.intern.hub.pm.dto.project.ProjectExtendRequest;
-import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
+import com.intern.hub.library.common.dto.PaginatedData;
+import com.intern.hub.pm.dto.project.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface ProjectService {
 
-    com.intern.hub.library.common.dto.PaginatedData<ProjectResponse> getProjects(int page, int size);
+    PaginatedData<ProjectResponse> getProjects(int page, int size);
+
+    PaginatedData<ProjectResponse> getProjects(ProjectFilterRequest filter, int page, int size);
+
+    ProjectStatisticsResponse getProjectStatistics();
 
     ProjectResponse getProject(Long projectId);
 
