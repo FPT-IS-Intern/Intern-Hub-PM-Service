@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,11 +26,11 @@ public class ProjectMemberController {
     private final ProjectMemberService projectMemberService;
 
     @PostMapping("/{projectId}/users")
-    @Operation(summary = "Thêm thành viên dự án", description = "Thêm mới một thành viên đang hoạt động vào dự án.")
-    public ResponseApi<ProjectMemberResponse> addMember(
+    @Operation(summary = "Thêm thành viên dự án", description = "Thêm mới danh sách thành viên đang hoạt động vào dự án.")
+    public ResponseApi<List<ProjectMemberResponse>> addMembers(
             @PathVariable Long projectId,
-            @Valid @RequestBody ProjectMemberCreateRequest request) {
-        return ResponseApi.ok(projectMemberService.addMember(projectId, request));
+            @Valid @RequestBody List<ProjectMemberCreateRequest> requests) {
+        return ResponseApi.ok(projectMemberService.addMembers(projectId, requests));
     }
 
     @GetMapping("/{projectId}/users")

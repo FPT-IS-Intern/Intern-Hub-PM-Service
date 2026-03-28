@@ -44,20 +44,26 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     @Override
     @Transactional
-    public ProjectMemberResponse addMember(Long projectId, ProjectMemberCreateRequest request) {
+    public List<ProjectMemberResponse> addMembers(Long projectId, List<ProjectMemberCreateRequest> requests) {
         Project project = getOwnedActiveProject(projectId);
-        if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(), Status.ACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User đã là thành viên của dự án");
-        }
 
-        ProjectMember member = ProjectMember.builder()
-                .project(project)
-                .userId(request.userId())
-                .role(request.role().trim())
-                .status(Status.ACTIVE)
-                .build();
+        List<ProjectMember> members = requests.stream().map(request -> {
+            if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(), Status.ACTIVE)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "User ID " + request.userId() + " đã là thành viên của dự án");
+            }
 
-        return toResponse(projectMemberRepository.save(member));
+            return ProjectMember.builder()
+                    .project(project)
+                    .userId(request.userId())
+                    .role(request.role().trim())
+                    .status(Status.ACTIVE)
+                    .build();
+        }).toList();
+
+        return projectMemberRepository.saveAll(members).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override

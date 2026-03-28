@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface ProjectMemberService {
 
-    ProjectMemberResponse addMember(Long projectId, ProjectMemberCreateRequest request);
+    List<ProjectMemberResponse> addMembers(Long projectId, List<ProjectMemberCreateRequest> requests);
 
     PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size);
 
