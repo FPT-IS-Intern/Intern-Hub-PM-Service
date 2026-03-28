@@ -4,12 +4,9 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ApproveRequest;
-import com.intern.hub.pm.dto.team.TeamCompleteRequest;
-import com.intern.hub.pm.dto.team.TeamResponse;
-import com.intern.hub.pm.dto.team.TeamUpsertRequest;
-import com.intern.hub.pm.dto.team.TeamFilterRequest;
-import com.intern.hub.pm.dto.team.TeamStatisticsResponse;
+import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
+import com.intern.hub.pm.feign.model.HrmUserClientModel;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
@@ -39,7 +36,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -318,6 +314,48 @@ public class TeamServiceImpl implements TeamService {
                 team.getCreatedAt(),
                 team.getUpdatedAt()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeamMemberResponse> getTeamMembers(Long teamId) {
+        List<TeamMember> members = teamMemberRepository.findAllByTeamId(teamId);
+        if (members.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> userIds = members.stream()
+                .map(TeamMember::getUserId)
+                .toList();
+
+        Map<Long, HrmUserClientModel> userMap = new HashMap<>();
+        try {
+            var response = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
+            if (response != null && response.data() != null) {
+                response.data().forEach(u -> {
+                    try {
+                        userMap.put(Long.valueOf(u.userId()), u);
+                    } catch (NumberFormatException e) {
+                        // Skip or handle non-numeric user IDs if any
+                    }
+                });
+            }
+        } catch (Exception e) {
+            // Log error or handle
+        }
+
+        return members.stream()
+                .map(m -> {
+                    HrmUserClientModel u = userMap.get(m.getUserId());
+                    return new TeamMemberResponse(
+                            m.getId(),
+                            m.getUserId(),
+                            u != null ? u.fullName() : "User (ID: " + m.getUserId() + ")",
+                            u != null ? u.email() : null,
+                            m.getStatus()
+                    );
+                })
+                .toList();
     }
 
     private String trimToNull(String value) {

@@ -2,11 +2,7 @@ package com.intern.hub.pm.service;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.pm.dto.project.ApproveRequest;
-import com.intern.hub.pm.dto.team.TeamCompleteRequest;
-import com.intern.hub.pm.dto.team.TeamResponse;
-import com.intern.hub.pm.dto.team.TeamUpsertRequest;
-import com.intern.hub.pm.dto.team.TeamFilterRequest;
-import com.intern.hub.pm.dto.team.TeamStatisticsResponse;
+import com.intern.hub.pm.dto.team.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -30,4 +26,6 @@ public interface TeamService {
     TeamResponse completeTeam(Long teamId, TeamCompleteRequest request);
 
     TeamResponse approveTeam(Long teamId, ApproveRequest request);
+
+    List<TeamMemberResponse> getTeamMembers(Long teamId);
 }

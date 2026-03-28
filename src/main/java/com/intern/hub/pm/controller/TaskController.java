@@ -28,6 +28,12 @@ import java.util.List;
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
 
+import com.intern.hub.pm.model.constant.StatusWork;
+import java.time.LocalDateTime;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("${api.prefix}")
@@ -37,7 +43,7 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    @PostMapping(value = "/projects/{projectId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/teams/{projectId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Tạo task", description = "Tạo mới task trong dự án và có thể đính kèm tài liệu hướng dẫn.")
     public ResponseApi<TaskResponse> createTask(
             @PathVariable Long projectId,
@@ -46,14 +52,24 @@ public class TaskController {
         return ResponseApi.ok(taskService.createTask(projectId, request, files));
     }
 
-    @GetMapping("/projects/{projectId}/tasks")
-    @Operation(summary = "Lấy danh sách task theo dự án team", description = "Trả về danh sách task của dự án có phân trang.")
-    public ResponseApi<PaginatedData<TaskResponse>> getProjectTasks(
-            @PathVariable Long projectId,
+    @GetMapping("/teams/{teamId}/tasks")
+    @Operation(summary = "Lấy danh sách task theo dự án team", description = "Trả về danh sách task của dự án team có phân trang.")
+    public ResponseApi<PaginatedData<TaskResponse>> getProjectteamTasks(
+            @PathVariable Long teamId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) StatusWork status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseApi.ok(taskService.getProjectTasks(projectId, page, size));
+        return ResponseApi.ok(taskService.getProjectTeamTasks(teamId, name, status, startDate, endDate, page, size));
+    }
+
+    @GetMapping("/teams/{teamId}/tasks/statistics")
+    @Operation(summary = "Lấy thống kê task theo team", description = "Trả số lượng task theo từng trạng thái trong team.")
+    public ResponseApi<TaskStatisticsResponse> getTaskStatistics(@PathVariable Long teamId) {
+        return ResponseApi.ok(taskService.getTaskStatistics(teamId));
     }
 
     @GetMapping("/tasks/{taskId}")
