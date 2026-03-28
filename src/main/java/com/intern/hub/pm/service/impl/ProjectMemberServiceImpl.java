@@ -48,7 +48,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         Project project = getOwnedActiveProject(projectId);
 
         List<ProjectMember> members = requests.stream().map(request -> {
-            if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(), Status.ACTIVE)) {
+            if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(),
+                    Status.ACTIVE)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "User ID " + request.userId() + " đã là thành viên của dự án");
             }
@@ -61,8 +62,16 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                     .build();
         }).toList();
 
-        return projectMemberRepository.saveAll(members).stream()
-                .map(this::toResponse)
+        List<ProjectMember> savedMembers = projectMemberRepository.saveAll(members);
+        List<Long> userIds = savedMembers.stream().map(ProjectMember::getUserId).toList();
+        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+        Map<Long, Long> projectCountByUserId = getProjectCountByUserIds(userIds);
+
+        return savedMembers.stream()
+                .map(member -> toResponse(
+                        member,
+                        projectCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        userDetailMap.get(member.getUserId())))
                 .toList();
     }
 
@@ -71,7 +80,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size) {
         getActiveProject(projectId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId, Status.ACTIVE,
+        Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId,
+                Status.ACTIVE,
                 pageable);
         List<Long> userIds = memberPage.getContent().stream()
                 .map(ProjectMember::getUserId)
@@ -116,7 +126,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private ProjectMember getActiveMember(Long memberId) {
         return projectMemberRepository.findByIdAndStatus(memberId, Status.ACTIVE)
                 .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user này trong dự án"));
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Không tìm thấy user này trong dự án"));
     }
 
     private Project getOwnedActiveProject(Long projectId) {
@@ -127,7 +138,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Không tìm thấy dự án"));
         if (project.getStatus() == StatusWork.CANCELED) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm tháy dự án");
         }
@@ -151,7 +163,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     private ProjectMemberResponse toResponse(ProjectMember member, Long countProjectTeam,
-            HrmUserClientModel userDetail) {
+                                             HrmUserClientModel userDetail) {
         return new ProjectMemberResponse(
                 member.getId(),
                 member.getProject().getId(),
@@ -169,7 +181,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
+        ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient
+                .getUsersByIdsInternal(userIds);
         if (hrmResponse.data() == null) {
             return Collections.emptyMap();
         }
@@ -191,10 +204,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseApi<PaginatedData<HrmFilterResponse>> searchProjectMembers(Long projectId, HrmFilterRequest request,
-            int page, int size) {
+    public ResponseApi<PaginatedData<HrmFilterResponse>> searchProjectMembers(Long projectId,
+                                                                              HrmFilterRequest request,
+                                                                              int page, int size) {
         // 1. Fetch exactly the IDs belonging to the project.
-        List<Long> projectUserIds = projectMemberRepository.findUserIdsByProjectIdAndStatus(projectId, Status.ACTIVE);
+        List<Long> projectUserIds = projectMemberRepository.findUserIdsByProjectIdAndStatus(projectId,
+                Status.ACTIVE);
 
         if (projectUserIds.isEmpty()) {
             return ResponseApi.ok(
@@ -222,7 +237,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         String keyword = request.getKeyword() != null ? request.getKeyword().toLowerCase().trim() : "";
         List<HrmFilterResponse> filteredUsers = hrmResponse.data().stream()
                 .filter(u -> keyword.isEmpty()
-                        || (u.fullName() != null && u.fullName().toLowerCase().contains(keyword))
+                        || (u.fullName() != null
+                        && u.fullName().toLowerCase().contains(keyword))
                         || (u.email() != null && u.email().toLowerCase().contains(keyword)))
                 .map(u -> HrmFilterResponse.builder()
                         .userId(u.userId())
