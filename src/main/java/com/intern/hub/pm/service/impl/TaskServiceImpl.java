@@ -11,8 +11,10 @@ import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.team.Task;
+import com.intern.hub.pm.model.team.Team;
 import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.repository.TaskRepository;
+import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.TaskService;
 import com.intern.hub.pm.utils.UserContext;
@@ -40,22 +42,26 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
+    private final TeamRepository teamRepository;
     private final DocumentService documentService;
 
     @Override
     @Transactional
-    public TaskResponse createTask(Long projectId, TaskUpsertRequest request, List<MultipartFile> files) {
-        Project project = getActiveProject(projectId);
+    public TaskResponse createTask(Long projectTeamId, TaskUpsertRequest request, List<MultipartFile> files) {
+        Team team = getActiveTeam(projectTeamId);
         Long currentUserId = UserContext.requiredUserId();
 
         Task task = Task.builder()
-                .project(project)
+                .team(team)
                 .taskUUID(randomNumberUUI())
                 .name(request.name().trim())
-                .description(request.description().trim())
+                .description(request.description() != null ? request.description().trim() : null)
                 .rewardToken(request.rewardToken())
                 .creatorId(currentUserId)
                 .assigneeId(request.assigneeId())
+                .startDate(request.startDate())
+                .endDate(request.endDate())
+                .status(StatusWork.NOT_STARTED)
                 .build();
 
         Task savedTask = taskRepository.save(task);
@@ -69,6 +75,7 @@ public class TaskServiceImpl implements TaskService {
         );
         return toResponse(savedTask);
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -239,6 +246,15 @@ public class TaskServiceImpl implements TaskService {
                 .build();
     }
 
+    private Team getActiveTeam(Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án team"));
+        if (team.getStatus() == StatusWork.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án team");
+        }
+        return team;
+    }
+
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
@@ -280,7 +296,7 @@ public class TaskServiceImpl implements TaskService {
 
         return new TaskResponse(
                 task.getId(),
-                task.getProject() != null ? task.getProject().getId() : null,
+                task.getTeam() != null ? task.getTeam().getId() : null,
                 task.getTaskUUID(),
                 task.getName(),
                 task.getDescription(),
