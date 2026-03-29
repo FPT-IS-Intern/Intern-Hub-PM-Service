@@ -11,6 +11,7 @@ import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.project.ProjectMember;
 import com.intern.hub.pm.repository.ProjectMemberRepository;
 import com.intern.hub.pm.repository.ProjectRepository;
+import com.intern.hub.pm.repository.TeamMemberRepository;
 import com.intern.hub.pm.service.ProjectMemberService;
 import com.intern.hub.pm.utils.UserContext;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
@@ -40,6 +41,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override
@@ -65,12 +67,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         List<ProjectMember> savedMembers = projectMemberRepository.saveAll(members);
         List<Long> userIds = savedMembers.stream().map(ProjectMember::getUserId).toList();
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
-        Map<Long, Long> projectCountByUserId = getProjectCountByUserIds(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds);
 
         return savedMembers.stream()
                 .map(member -> toResponse(
                         member,
-                        projectCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
                         userDetailMap.get(member.getUserId())))
                 .toList();
     }
@@ -88,13 +90,13 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 .distinct()
                 .toList();
 
-        Map<Long, Long> projectCountByUserId = getProjectCountByUserIds(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds);
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
 
         List<ProjectMemberResponse> items = memberPage.getContent().stream()
                 .map(member -> toResponse(
                         member,
-                        projectCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
                         userDetailMap.get(member.getUserId())))
                 .toList();
 
@@ -154,7 +156,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     private ProjectMemberResponse toResponse(ProjectMember member) {
-        Long countProjectTeam = projectMemberRepository.countActiveProjectsByUserId(
+        Long countProjectTeam = teamMemberRepository.countActiveTeamsByUserId(
                 member.getUserId(),
                 Status.ACTIVE,
                 StatusWork.CANCELED);
@@ -190,12 +192,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
     }
 
-    private Map<Long, Long> getProjectCountByUserIds(List<Long> userIds) {
+    private Map<Long, Long> getTeamCountByUserIds(List<Long> userIds) {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        return projectMemberRepository.countActiveProjectsByUserIds(userIds, Status.ACTIVE, StatusWork.CANCELED)
+        return teamMemberRepository.countActiveTeamsByUserIds(userIds, Status.ACTIVE, StatusWork.CANCELED)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
