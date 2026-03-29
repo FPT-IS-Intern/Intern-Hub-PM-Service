@@ -2,6 +2,7 @@ package com.intern.hub.pm.controller;
 
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
+import com.intern.hub.pm.dto.task.TaskSubmitRequest;
 import com.intern.hub.pm.dto.task.TaskUpsertRequest;
 import com.intern.hub.pm.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -94,12 +95,14 @@ public class TaskController {
     }
 
     @PostMapping(value = "/tasks/{taskId}/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Nộp bài task", description = "Nộp kết quả task, thay thế bộ file submission cũ bằng bộ mới nhất.")
+    @Operation(summary = "Nộp bài task", description = "Nộp kết quả task. Gửi request JSON + files. Chuyển trạng thái sang PENDING_REVIEW.")
     public ResponseApi<TaskResponse> submitTask(
             @PathVariable Long taskId,
-            @RequestParam(value = "deliverableLink", required = false) String deliverableLink,
+            @RequestPart(value = "request", required = false) TaskSubmitRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-        return ResponseApi.ok(taskService.submitTask(taskId, deliverableLink, files));
+        String desc = request != null ? request.deliverableDescription() : null;
+        String link = request != null ? request.deliverableLink() : null;
+        return ResponseApi.ok(taskService.submitTask(taskId, desc, link, files));
     }
 
     @PostMapping("/tasks/{taskId}/approve")

@@ -189,11 +189,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskResponse submitTask(Long taskId, String deliverableLink, List<MultipartFile> files) {
+    public TaskResponse submitTask(Long taskId, String deliverableDescription, String deliverableLink, List<MultipartFile> files) {
         Task task = getActiveTask(taskId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(task.getAssigneeId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the assigned user can submit this task");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ người được giao task mới có thể nộp bài");
         }
 
         documentService.replaceDocuments(
@@ -204,10 +204,12 @@ public class TaskServiceImpl implements TaskService {
                 "pm/tasks/" + task.getId() + "/submissions",
                 files
         );
+        task.setDeliverableDescription(trimToNull(deliverableDescription));
         task.setDeliverableLink(trimToNull(deliverableLink));
         task.setStatus(StatusWork.PENDING_REVIEW);
         return toResponse(taskRepository.save(task));
     }
+
 
     @Override
     @Transactional

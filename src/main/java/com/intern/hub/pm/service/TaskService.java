@@ -26,7 +26,7 @@ public interface TaskService {
 
     void deleteTask(Long taskId);
 
-    TaskResponse submitTask(Long taskId, String deliverableLink, List<MultipartFile> files);
+    TaskResponse submitTask(Long taskId, String deliverableDescription, String deliverableLink, List<MultipartFile> files);
 
     TaskResponse approveTask(Long taskId, TaskReviewRequest request);
 
