@@ -67,7 +67,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         List<ProjectMember> savedMembers = projectMemberRepository.saveAll(members);
         List<Long> userIds = savedMembers.stream().map(ProjectMember::getUserId).toList();
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
-        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
 
         return savedMembers.stream()
                 .map(member -> toResponse(
@@ -90,7 +90,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 .distinct()
                 .toList();
 
-        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
 
         List<ProjectMemberResponse> items = memberPage.getContent().stream()
@@ -156,10 +156,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     private ProjectMemberResponse toResponse(ProjectMember member) {
+        Long projectId = member.getProject().getId();
         Long countProjectTeam = teamMemberRepository.countActiveTeamsByUserId(
                 member.getUserId(),
                 Status.ACTIVE,
-                StatusWork.CANCELED);
+                StatusWork.CANCELED,
+                projectId);
         HrmUserClientModel userDetail = hrmInternalFeignClient.getUserByIdInternal(member.getUserId()).data();
         return toResponse(member, countProjectTeam, userDetail);
     }
@@ -192,12 +194,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
     }
 
-    private Map<Long, Long> getTeamCountByUserIds(List<Long> userIds) {
+    private Map<Long, Long> getTeamCountByUserIds(List<Long> userIds, Long projectId) {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        return teamMemberRepository.countActiveTeamsByUserIds(userIds, Status.ACTIVE, StatusWork.CANCELED)
+        return teamMemberRepository.countActiveTeamsByUserIds(userIds, Status.ACTIVE, StatusWork.CANCELED, projectId)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],

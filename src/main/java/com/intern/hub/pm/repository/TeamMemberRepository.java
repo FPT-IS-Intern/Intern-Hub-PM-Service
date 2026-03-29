@@ -19,10 +19,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             WHERE tm.userId = :userId
               AND tm.status = :memberStatus
               AND tm.team.status <> :teamStatus
+              AND tm.team.project.id = :projectId
             """)
     Long countActiveTeamsByUserId(@Param("userId") Long userId,
                                   @Param("memberStatus") Status memberStatus,
-                                  @Param("teamStatus") StatusWork teamStatus);
+                                  @Param("teamStatus") StatusWork teamStatus,
+                                  @Param("projectId") Long projectId);
 
     @Query("""
             SELECT tm.userId, COUNT(DISTINCT tm.team.id)
@@ -30,9 +32,11 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             WHERE tm.userId IN :userIds
               AND tm.status = :memberStatus
               AND tm.team.status <> :teamStatus
+              AND tm.team.project.id = :projectId
             GROUP BY tm.userId
             """)
     List<Object[]> countActiveTeamsByUserIds(@Param("userIds") List<Long> userIds,
                                              @Param("memberStatus") Status memberStatus,
-                                             @Param("teamStatus") StatusWork teamStatus);
+                                             @Param("teamStatus") StatusWork teamStatus,
+                                             @Param("projectId") Long projectId);
 }
