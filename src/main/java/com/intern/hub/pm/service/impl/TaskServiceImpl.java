@@ -118,7 +118,6 @@ public class TaskServiceImpl implements TaskService {
 
         List<Task> tasks = taskPage.getContent();
         
-        // Fetch names in bulk
         List<Long> userIds = new ArrayList<>();
         tasks.forEach(t -> {
             if (t.getCreatorId() != null) userIds.add(t.getCreatorId());

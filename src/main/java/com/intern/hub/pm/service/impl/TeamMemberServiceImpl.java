@@ -10,6 +10,7 @@ import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.model.HrmUserClientModel;
 import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
+import com.intern.hub.pm.model.project.ProjectMember;
 import com.intern.hub.pm.model.team.Team;
 import com.intern.hub.pm.model.team.TeamMember;
 import com.intern.hub.pm.repository.ProjectMemberRepository;
@@ -92,7 +93,6 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     public PaginatedData<TeamMemberResponse> getMembers(Long teamId, String keyword, int page, int size) {
         String kw = keyword != null ? keyword.toLowerCase().trim() : "";
         
-        // Nếu không có keyword, sử dụng database pagination cho hiệu năng cao
         if (kw.isEmpty()) {
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
             Page<TeamMember> memberPage = teamMemberRepository.findAllByTeamId(teamId, pageable);
@@ -116,7 +116,6 @@ public class TeamMemberServiceImpl implements TeamMemberService {
                     .build();
         }
 
-        // Nếu có keyword, thực hiện lọc In-Memory (do thông tin Name/Email nằm ở HRM Service)
         List<TeamMember> allMembers = teamMemberRepository.findAllByTeamId(teamId);
         if (allMembers.isEmpty()) {
             return PaginatedData.<TeamMemberResponse>builder()
@@ -165,7 +164,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
                         member.getTeam().getProject().getId(),
                         member.getUserId(),
                         Status.ACTIVE)
-                .map(com.intern.hub.pm.model.project.ProjectMember::getRole)
+                .map(ProjectMember::getRole)
                 .orElse("DEVELOPER");
 
         return TeamMemberResponse.builder()
