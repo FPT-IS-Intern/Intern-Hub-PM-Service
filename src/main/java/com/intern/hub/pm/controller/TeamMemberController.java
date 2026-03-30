@@ -2,7 +2,6 @@ package com.intern.hub.pm.controller;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
-import com.intern.hub.pm.feign.model.HrmFilterRequest;
 import com.intern.hub.pm.dto.team.TeamMemberCreateRequest;
 import com.intern.hub.pm.dto.team.TeamMemberResponse;
 import com.intern.hub.pm.service.TeamMemberService;
@@ -33,22 +32,13 @@ public class TeamMemberController {
     }
 
     @GetMapping("/{teamId}/users")
-    @Operation(summary = "Lấy danh sách thành viên trong team")
+    @Operation(summary = "Lấy danh sách hoặc tìm kiếm thành viên trong team")
     public ResponseApi<PaginatedData<TeamMemberResponse>> getMembers(
             @PathVariable Long teamId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(teamMemberService.getMembers(teamId, page, size));
-    }
-
-    @PostMapping("/{teamId}/users/search")
-    @Operation(summary = "Tìm kiếm thành viên trong team")
-    public ResponseApi<PaginatedData<TeamMemberResponse>> searchMembers(
-            @PathVariable Long teamId,
-            @Valid @RequestBody HrmFilterRequest request,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(teamMemberService.searchMembers(teamId, request.getKeyword(), page, size));
+        return ResponseApi.ok(teamMemberService.getMembers(teamId, keyword, page, size));
     }
 
     @DeleteMapping("/users/{memberId}")

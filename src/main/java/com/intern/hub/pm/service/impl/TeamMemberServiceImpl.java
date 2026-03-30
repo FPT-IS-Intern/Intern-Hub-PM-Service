@@ -10,7 +10,6 @@ import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.model.HrmUserClientModel;
 import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
-import com.intern.hub.pm.model.project.ProjectMember;
 import com.intern.hub.pm.model.team.Team;
 import com.intern.hub.pm.model.team.TeamMember;
 import com.intern.hub.pm.repository.ProjectMemberRepository;
@@ -30,7 +29,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,17 +48,13 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy team"));
 
-        // 1. Lấy danh sách thành viên hiện có trong Team để kiểm tra trùng lặp
         Set<Long> existingMemberIds = teamMemberRepository.findAllByTeamId(teamId).stream()
                 .filter(m -> m.getStatus() == Status.ACTIVE)
                 .map(TeamMember::getUserId)
                 .collect(Collectors.toSet());
 
-        // 2. Kiểm tra xem các User này có thuộc dự án (Project) chứa Team này không
         Long projectId = team.getProject().getId();
         
-        // Fetch all active project members for this project
-        // Note: ProjectMemberRepository.findUserIdsByProjectIdAndStatus is very efficient here
         Set<Long> projectMemberIds = new HashSet<>(
                 projectMemberRepository.findUserIdsByProjectIdAndStatus(projectId, Status.ACTIVE)
         );
@@ -86,39 +80,43 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         List<TeamMember> savedMembers = teamMemberRepository.saveAll(members);
         List<Long> userIds = savedMembers.stream().map(TeamMember::getUserId).toList();
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+        Map<Long, Long> taskCountMap = getTaskCountMap(teamId, userIds);
 
         return savedMembers.stream()
-                .map(member -> toResponse(member, userDetailMap.get(member.getUserId())))
+                .map(member -> toResponse(member, userDetailMap.get(member.getUserId()), taskCountMap.getOrDefault(member.getUserId(), 0L)))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedData<TeamMemberResponse> getMembers(Long teamId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        Page<TeamMember> memberPage = teamMemberRepository.findAllByTeamId(teamId, pageable);
+    public PaginatedData<TeamMemberResponse> getMembers(Long teamId, String keyword, int page, int size) {
+        String kw = keyword != null ? keyword.toLowerCase().trim() : "";
         
-        List<Long> userIds = memberPage.getContent().stream()
-                .map(TeamMember::getUserId)
-                .distinct()
-                .toList();
+        // Nếu không có keyword, sử dụng database pagination cho hiệu năng cao
+        if (kw.isEmpty()) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+            Page<TeamMember> memberPage = teamMemberRepository.findAllByTeamId(teamId, pageable);
+            
+            List<Long> userIds = memberPage.getContent().stream()
+                    .map(TeamMember::getUserId)
+                    .distinct()
+                    .toList();
 
-        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+            Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+            Map<Long, Long> taskCountMap = getTaskCountMap(teamId, userIds);
 
-        List<TeamMemberResponse> items = memberPage.getContent().stream()
-                .map(member -> toResponse(member, userDetailMap.get(member.getUserId())))
-                .toList();
+            List<TeamMemberResponse> items = memberPage.getContent().stream()
+                    .map(member -> toResponse(member, userDetailMap.get(member.getUserId()), taskCountMap.getOrDefault(member.getUserId(), 0L)))
+                    .toList();
 
-        return PaginatedData.<TeamMemberResponse>builder()
-                .items(items)
-                .totalItems(memberPage.getTotalElements())
-                .totalPages(memberPage.getTotalPages())
-                .build();
-    }
+            return PaginatedData.<TeamMemberResponse>builder()
+                    .items(items)
+                    .totalItems(memberPage.getTotalElements())
+                    .totalPages(memberPage.getTotalPages())
+                    .build();
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PaginatedData<TeamMemberResponse> searchMembers(Long teamId, String keyword, int page, int size) {
+        // Nếu có keyword, thực hiện lọc In-Memory (do thông tin Name/Email nằm ở HRM Service)
         List<TeamMember> allMembers = teamMemberRepository.findAllByTeamId(teamId);
         if (allMembers.isEmpty()) {
             return PaginatedData.<TeamMemberResponse>builder()
@@ -130,12 +128,11 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 
         List<Long> userIds = allMembers.stream().map(TeamMember::getUserId).toList();
         Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+        Map<Long, Long> taskCountMap = getTaskCountMap(teamId, userIds);
 
-        String kw = keyword != null ? keyword.toLowerCase().trim() : "";
         List<TeamMemberResponse> filteredItems = allMembers.stream()
-                .map(member -> toResponse(member, userDetailMap.get(member.getUserId())))
-                .filter(res -> kw.isEmpty()
-                        || (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
+                .map(member -> toResponse(member, userDetailMap.get(member.getUserId()), taskCountMap.getOrDefault(member.getUserId(), 0L)))
+                .filter(res -> (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
                         || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw)))
                 .collect(Collectors.toList());
 
@@ -163,13 +160,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         teamMemberRepository.save(member);
     }
 
-    private TeamMemberResponse toResponse(TeamMember member, HrmUserClientModel userDetail) {
-        long taskCount = taskRepository.countByTeamIdAndAssigneeIdAndStatusNot(
-                member.getTeam().getId(),
-                member.getUserId(),
-                StatusWork.CANCELED
-        );
-
+    private TeamMemberResponse toResponse(TeamMember member, HrmUserClientModel userDetail, Long taskCount) {
         String role = projectMemberRepository.findByProjectIdAndUserIdAndStatus(
                         member.getTeam().getProject().getId(),
                         member.getUserId(),
@@ -202,5 +193,17 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         }
         return hrmResponse.data().stream()
                 .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
+    }
+
+    private Map<Long, Long> getTaskCountMap(Long teamId, List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Object[]> counts = taskRepository.countTasksByTeamIdAndAssigneeIds(teamId, userIds, StatusWork.CANCELED);
+        return counts.stream()
+                .collect(Collectors.toMap(
+                        obj -> (Long) obj[0],
+                        obj -> (Long) obj[1]
+                ));
     }
 }
