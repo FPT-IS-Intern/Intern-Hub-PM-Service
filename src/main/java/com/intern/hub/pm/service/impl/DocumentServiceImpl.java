@@ -8,13 +8,12 @@ import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.repository.DocumentRepository;
 import com.intern.hub.pm.repository.FileStorageRepository;
 import com.intern.hub.pm.service.DocumentService;
+import com.intern.hub.library.common.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -73,9 +72,7 @@ public class DocumentServiceImpl implements DocumentService {
 
         long totalUploadSize = files.stream().mapToLong(MultipartFile::getSize).sum();
         if (totalUploadSize > maxTotalSize) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Tổng dung lượng file vượt quá giới hạn " + (maxTotalSize / 1024 / 1024) + "MB");
+            throw new BadRequestException("Tổng dung lượng file vượt quá giới hạn " + (maxTotalSize / 1024 / 1024) + "MB");
         }
 
         for (MultipartFile file : files) {

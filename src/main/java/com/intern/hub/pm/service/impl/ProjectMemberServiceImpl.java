@@ -18,15 +18,16 @@ import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.model.HrmFilterRequest;
 import com.intern.hub.pm.feign.model.HrmFilterResponse;
 import com.intern.hub.library.common.dto.ResponseApi;
+import com.intern.hub.library.common.exception.ConflictDataException;
+import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,8 +53,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         List<ProjectMember> members = requests.stream().map(request -> {
             if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(),
                     Status.ACTIVE)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "User ID " + request.userId() + " đã là thành viên của dự án");
+                throw new ConflictDataException("User ID " + request.userId() + " đã là thành viên của dự án");
             }
 
             return ProjectMember.builder()
@@ -127,9 +127,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     private ProjectMember getActiveMember(Long memberId) {
         return projectMemberRepository.findByIdAndStatus(memberId, Status.ACTIVE)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                "Không tìm thấy user này trong dự án"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy user này trong dự án"));
     }
 
     private Project getOwnedActiveProject(Long projectId) {
@@ -140,10 +138,9 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Không tìm thấy dự án"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
         if (project.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm tháy dự án");
+            throw new NotFoundException("Không tìm thấy dự án");
         }
         return project;
     }
@@ -151,7 +148,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private void assertProjectOwner(Project project) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(project.getCreatorId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải là chủ dự án này!");
+            throw new ForbiddenException("Bạn không phải là chủ dự án này!");
         }
     }
 

@@ -23,15 +23,15 @@ import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
+import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -227,9 +227,9 @@ public class ProjectServiceImpl implements ProjectService {
 
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
         if (project.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án");
+            throw new NotFoundException("Không tìm thấy dự án");
         }
         return project;
     }
@@ -237,7 +237,7 @@ public class ProjectServiceImpl implements ProjectService {
     private void assertProjectOwner(Project project) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(project.getCreatorId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải chủ dự án này!");
+            throw new ForbiddenException("Bạn không phải chủ dự án này!");
         }
     }
 

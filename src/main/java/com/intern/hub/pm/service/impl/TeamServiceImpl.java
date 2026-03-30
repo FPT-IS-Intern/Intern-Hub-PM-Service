@@ -21,15 +21,15 @@ import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.TeamService;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
+import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -242,22 +242,22 @@ public class TeamServiceImpl implements TeamService {
 
     private Team getActiveTeam(Long teamId) {
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay team"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy team"));
         if (team.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy team");
+            throw new NotFoundException("Không tìm thấy team");
         }
         return team;
     }
 
     private Project getProject(Long projectId) {
         return projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
     }
 
     private void assertTeamOwner(Team team) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(team.getCreatorId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải là leader team này!");
+            throw new ForbiddenException("Bạn không phải là leader team này!");
         }
     }
 

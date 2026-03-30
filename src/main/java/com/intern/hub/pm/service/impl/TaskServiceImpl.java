@@ -21,10 +21,11 @@ import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import com.intern.hub.library.common.exception.BadRequestException;
+import com.intern.hub.library.common.exception.ForbiddenException;
+import com.intern.hub.library.common.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -193,7 +194,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = getActiveTask(taskId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(task.getAssigneeId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ người được giao task mới có thể nộp bài");
+            throw new ForbiddenException("Chỉ người được giao task mới có thể nộp bài");
         }
 
         documentService.replaceDocuments(
@@ -250,27 +251,27 @@ public class TaskServiceImpl implements TaskService {
 
     private Team getActiveTeam(Long teamId) {
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án team"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án team"));
         if (team.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dự án team");
+            throw new NotFoundException("Không tìm thấy dự án team");
         }
         return team;
     }
 
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+                .orElseThrow(() -> new NotFoundException("Project not found"));
         if (project.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
+            throw new NotFoundException("Project not found");
         }
         return project;
     }
 
     private Task getActiveTask(Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+                .orElseThrow(() -> new NotFoundException("Task not found"));
         if (task.getStatus() == StatusWork.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found");
+            throw new NotFoundException("Task not found");
         }
         return task;
     }
@@ -278,7 +279,7 @@ public class TaskServiceImpl implements TaskService {
     private Task getPendingReviewTask(Long taskId) {
         Task task = getActiveTask(taskId);
         if (task.getStatus() != StatusWork.PENDING_REVIEW) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Task must be pending review");
+            throw new BadRequestException("Task must be pending review");
         }
         return task;
     }
@@ -286,7 +287,7 @@ public class TaskServiceImpl implements TaskService {
     private void assertTaskOwner(Task task) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(task.getCreatorId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the task creator can modify this task");
+            throw new ForbiddenException("Only the task creator can modify this task");
         }
     }
 
