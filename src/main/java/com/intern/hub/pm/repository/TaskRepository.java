@@ -20,4 +20,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     long countByTeamIdAndStatus(Long teamId, StatusWork status);
 
     long countByTeamIdAndStatusNot(Long teamId, StatusWork status);
+
+    long countByTeamIdAndAssigneeIdAndStatusNot(Long teamId, Long assigneeId, StatusWork status);
 }

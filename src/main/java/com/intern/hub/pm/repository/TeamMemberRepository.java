@@ -3,6 +3,7 @@ package com.intern.hub.pm.repository;
 import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.team.TeamMember;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,7 @@ import java.util.List;
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     Integer countByTeamIdAndStatus(Long teamId, Status status);
     List<TeamMember> findAllByTeamId(Long teamId);
+    Page<TeamMember> findAllByTeamId(Long teamId, org.springframework.data.domain.Pageable pageable);
 
     @Query("""
             SELECT COUNT(DISTINCT tm.team.id)
