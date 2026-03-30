@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,19 +61,18 @@ public class TeamServiceImpl implements TeamService {
     @Transactional(readOnly = true)
     public PaginatedData<TeamResponse> getTeams(TeamFilterRequest filter, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, TEAM_SORT);
-        org.springframework.data.jpa.domain.Specification<Team> spec = TeamSpecification.filter(filter);
+        Specification<Team> spec = TeamSpecification.filter(filter);
         Page<Team> teamPage = teamRepository.findAll(spec, pageable);
 
         List<Team> teams = teamPage.getContent();
         
-        // Batch fetch lead names
         List<Long> leadIds = teams.stream()
                 .map(Team::getAssigneeId)
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .toList();
         
-        java.util.Map<Long, String> leadNameMap = new java.util.HashMap<>();
+        Map<Long, String> leadNameMap = new HashMap<>();
         if (!leadIds.isEmpty()) {
             try {
                 var response = hrmInternalFeignClient.getUsersByIdsInternal(leadIds);

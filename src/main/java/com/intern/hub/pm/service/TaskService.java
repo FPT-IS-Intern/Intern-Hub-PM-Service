@@ -1,6 +1,7 @@
 package com.intern.hub.pm.service;
 
 import com.intern.hub.library.common.dto.PaginatedData;
+import com.intern.hub.pm.dto.task.TaskFilterRequest;
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
 import com.intern.hub.pm.dto.task.TaskUpsertRequest;
@@ -16,8 +17,7 @@ public interface TaskService {
     TaskResponse createTask(Long projectId, TaskUpsertRequest request, List<MultipartFile> files);
 
     PaginatedData<TaskResponse> getProjectTeamTasks(
-            Long teamId, String name, StatusWork status,
-            LocalDateTime startDate, LocalDateTime endDate,
+            Long teamId, TaskFilterRequest filter,
             int page, int size);
 
     TaskResponse getTask(Long taskId);

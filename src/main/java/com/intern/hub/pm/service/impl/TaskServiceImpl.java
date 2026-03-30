@@ -2,10 +2,12 @@ package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.pm.dto.document.DocumentResponse;
+import com.intern.hub.pm.dto.task.TaskFilterRequest;
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
 import com.intern.hub.pm.dto.task.TaskUpsertRequest;
 import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
+import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
@@ -31,11 +33,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
-import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,7 @@ public class TaskServiceImpl implements TaskService {
     private final ProjectRepository projectRepository;
     private final TeamRepository teamRepository;
     private final DocumentService documentService;
+    private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override
     @Transactional
@@ -81,34 +85,29 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedData<TaskResponse> getProjectTeamTasks(
-            Long teamId, String name, StatusWork status,
-            LocalDateTime startDate, LocalDateTime endDate,
+            Long teamId, TaskFilterRequest filter,
             int page, int size) {
         
         Specification<Task> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             
-            // Lọc theo teamId (giả định relationship team.id)
             predicates.add(cb.equal(root.get("team").get("id"), teamId));
             
-            // Loại bỏ status CANCELED mặc định, hoặc lọc theo status cụ thể
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
+            if (filter.status() != null) {
+                predicates.add(cb.equal(root.get("status"), filter.status()));
             } else {
                 predicates.add(cb.notEqual(root.get("status"), StatusWork.CANCELED));
             }
             
-            // Lọc theo tên (không phân biệt hoa thường)
-            if (name != null && !name.trim().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase().trim() + "%"));
+            if (filter.name() != null && !filter.name().trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("name")), "%" + filter.name().toLowerCase().trim() + "%"));
             }
             
-            // Lọc theo khoảng thời gian
-            if (startDate != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), startDate));
+            if (filter.startDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), filter.startDate()));
             }
-            if (endDate != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), endDate));
+            if (filter.endDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), filter.endDate()));
             }
             
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -117,8 +116,21 @@ public class TaskServiceImpl implements TaskService {
         Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
         Page<Task> taskPage = taskRepository.findAll(spec, pageable);
 
-        List<TaskResponse> items = taskPage.getContent().stream()
-                .map(this::toResponse)
+        List<Task> tasks = taskPage.getContent();
+        
+        // Fetch names in bulk
+        List<Long> userIds = new ArrayList<>();
+        tasks.forEach(t -> {
+            if (t.getCreatorId() != null) userIds.add(t.getCreatorId());
+            if (t.getAssigneeId() != null) userIds.add(t.getAssigneeId());
+        });
+        
+        Map<Long, String> userNameMap = fetchUserNames(userIds.stream().distinct().toList());
+
+        List<TaskResponse> items = tasks.stream()
+                .map(t -> toResponseWithNames(t, 
+                        userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
+                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
                 .toList();
 
         return PaginatedData.<TaskResponse>builder()
@@ -126,6 +138,20 @@ public class TaskServiceImpl implements TaskService {
                 .totalItems(taskPage.getTotalElements())
                 .totalPages(taskPage.getTotalPages())
                 .build();
+    }
+
+    private Map<Long, String> fetchUserNames(List<Long> userIds) {
+        Map<Long, String> userNameMap = new java.util.HashMap<>();
+        if (userIds == null || userIds.isEmpty()) return userNameMap;
+        try {
+            var response = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
+            if (response != null && response.data() != null) {
+                response.data().forEach(u -> userNameMap.put(Long.valueOf(u.userId()), u.fullName()));
+            }
+        } catch (Exception e) {
+            // Log error if needed, fallback to IDs managed by getOrDefault
+        }
+        return userNameMap;
     }
 
     @Override
@@ -238,8 +264,19 @@ public class TaskServiceImpl implements TaskService {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
         org.springframework.data.domain.Page<Task> taskPage = taskRepository.findAllByAssigneeIdAndStatusNot(currentUserId, StatusWork.CANCELED, pageable);
 
-        List<TaskResponse> items = taskPage.getContent().stream()
-                .map(this::toResponse)
+        List<Task> tasks = taskPage.getContent();
+        List<Long> userIds = tasks.stream()
+                .flatMap(t -> java.util.stream.Stream.of(t.getCreatorId(), t.getAssigneeId()))
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        
+        Map<Long, String> userNameMap = fetchUserNames(userIds);
+
+        List<TaskResponse> items = tasks.stream()
+                .map(t -> toResponseWithNames(t, 
+                        userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
+                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
                 .toList();
 
         return com.intern.hub.library.common.dto.PaginatedData.<TaskResponse>builder()
@@ -292,6 +329,26 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private TaskResponse toResponse(Task task) {
+        String creatorName = "User (ID: " + task.getCreatorId() + ")";
+        String assigneeName = "User (ID: " + task.getAssigneeId() + ")";
+        
+        try {
+            if (task.getCreatorId() != null) {
+                var res = hrmInternalFeignClient.getUserByIdInternal(task.getCreatorId());
+                if (res != null && res.data() != null) creatorName = res.data().fullName();
+            }
+            if (task.getAssigneeId() != null) {
+                var res = hrmInternalFeignClient.getUserByIdInternal(task.getAssigneeId());
+                if (res != null && res.data() != null) assigneeName = res.data().fullName();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        
+        return toResponseWithNames(task, creatorName, assigneeName);
+    }
+
+    private TaskResponse toResponseWithNames(Task task, String creatorName, String assigneeName) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 task.getId(), DocumentScope.TASK, DocumentType.CHARTER);
         List<DocumentResponse> submissionDocuments = documentService.getDocuments(
@@ -308,9 +365,13 @@ public class TaskServiceImpl implements TaskService {
                 task.getRewardToken(),
                 task.getCreatorId(),
                 task.getAssigneeId(),
+                creatorName,
+                assigneeName,
                 charterDocuments,
                 task.getDeliverableDescription(),
                 task.getDeliverableLink(),
+                task.getStartDate(),
+                task.getEndDate(),
                 submissionDocuments,
                 task.getCreatedAt(),
                 task.getUpdatedAt()

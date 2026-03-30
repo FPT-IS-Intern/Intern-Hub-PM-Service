@@ -82,7 +82,7 @@ public class TeamController {
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         AuthContext context = AuthContextHolder.get()
                 .orElseThrow(() -> new ForbiddenException(
-                        "Khong tim thay thong tin xac thuc. Vui long kiem tra lai token hoac cac header (X-UserId, X-Authenticated)."));
+                        "Không tìm thấy thông tin xác thực)."));
         return ResponseApi.ok(teamService.createTeam(context.userId(), request, files));
     }
 

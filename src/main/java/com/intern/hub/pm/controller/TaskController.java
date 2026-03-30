@@ -1,5 +1,6 @@
 package com.intern.hub.pm.controller;
 
+import com.intern.hub.pm.dto.task.TaskFilterRequest;
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
 import com.intern.hub.pm.dto.task.TaskSubmitRequest;
@@ -53,17 +54,14 @@ public class TaskController {
         return ResponseApi.ok(taskService.createTask(teamId, request, files));
     }
 
-    @GetMapping("/teams/{teamId}/tasks")
-    @Operation(summary = "Lấy danh sách task theo dự án team", description = "Trả về danh sách task của dự án team có phân trang.")
-    public ResponseApi<PaginatedData<TaskResponse>> getProjectteamTasks(
+    @PostMapping("/teams/{teamId}/tasks/filter")
+    @Operation(summary = "Lấy danh sách task theo dự án team ", description = "Trả về danh sách task của dự án team có phân trang và hỗ trợ lọc qua RequestBody.")
+    public ResponseApi<PaginatedData<TaskResponse>> getProjectTeamTasks(
             @PathVariable Long teamId,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) StatusWork status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestBody TaskFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(taskService.getProjectTeamTasks(teamId, name, status, startDate, endDate, page, size));
+        return ResponseApi.ok(taskService.getProjectTeamTasks(teamId, filter, page, size));
     }
 
     @GetMapping("/teams/{teamId}/tasks/statistics")

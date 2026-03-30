@@ -113,7 +113,7 @@ public class ProjectController {
     // }
 
     @PostMapping("/{projectId}/complete")
-    @Operation(summary = "Nộp dự án dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
+    @Operation(summary = "Nộp dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> completeProject(
             @PathVariable Long projectId,
             @Valid @RequestBody ProjectCompleteRequest request) {
