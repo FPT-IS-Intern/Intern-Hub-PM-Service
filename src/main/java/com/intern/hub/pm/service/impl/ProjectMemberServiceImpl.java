@@ -1,6 +1,7 @@
 package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.library.common.dto.PaginatedData;
+import com.intern.hub.library.common.exception.BadRequestException;
 import com.intern.hub.pm.dto.project.member.ProjectMemberCreateRequest;
 import com.intern.hub.pm.dto.project.member.ProjectMemberResponse;
 import com.intern.hub.pm.dto.project.member.ProjectMemberUpdateRequest;
@@ -190,7 +191,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private void assertProjectOwner(Project project) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(project.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là chủ dự án này!");
+            throw new BadRequestException("Bạn không phải là chủ dự án này!");
         }
     }
 

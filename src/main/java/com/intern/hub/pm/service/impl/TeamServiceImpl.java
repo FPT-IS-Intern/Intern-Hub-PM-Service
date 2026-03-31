@@ -15,6 +15,7 @@ import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.team.Team;
 import com.intern.hub.pm.model.team.TeamMember;
 import com.intern.hub.pm.repository.ProjectRepository;
+import com.intern.hub.pm.repository.TaskRepository;
 import com.intern.hub.pm.repository.TeamMemberRepository;
 import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.service.DocumentService;
@@ -47,6 +48,7 @@ public class TeamServiceImpl implements TeamService {
 
     private final TeamRepository teamRepository;
     private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final DocumentService documentService;
     private final HrmInternalFeignClient hrmInternalFeignClient;
@@ -220,6 +222,16 @@ public class TeamServiceImpl implements TeamService {
     public TeamResponse completeTeam(Long teamId, TeamCompleteRequest request) {
         Team team = getActiveTeam(teamId);
         assertTeamOwner(team);
+
+        long incompleteTaskCount = taskRepository.countByTeamIdAndStatusNotAndStatusNot(
+                teamId,
+                StatusWork.COMPLETED,
+                StatusWork.CANCELED
+        );
+        if (incompleteTaskCount > 0) {
+            throw new ConflictDataException("Vẫn còn task trong team chưa được duyệt hoàn thành");
+        }
+
         team.setStatus(StatusWork.PENDING_REVIEW);
         team.setCompletionComment(trimToNull(request.completionComment()));
         return toResponse(teamRepository.save(team));
