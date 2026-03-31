@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserfiterController {
 
     private final HrmInternalFeignClient hrmInternalFeignClient;
-    private final com.intern.hub.pm.service.ProjectMemberService projectMemberService;
 
     @PostMapping("/filter")
     @Operation(summary = "Lọc danh sách user từ HRM", description = "Gọi sang HRM-Service để lấy danh sách user theo bộ lọc.")
@@ -39,16 +38,5 @@ public class UserfiterController {
         }
 
         return hrmInternalFeignClient.filterUsers(request, page, size);
-    }
-
-    @PostMapping("/project-members/{projectId}/search")
-    @Operation(summary = "Tìm kiếm thành viên thuộc dự án", description = "Lọc danh sách user thuộc dự án bằng từ khóa.")
-    public ResponseApi<PaginatedData<HrmFilterResponse>> searchProjectMembers(
-            @PathVariable Long projectId,
-            @RequestBody HrmFilterRequest request,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        
-        return projectMemberService.searchProjectMembers(projectId, request, page, size);
     }
 }

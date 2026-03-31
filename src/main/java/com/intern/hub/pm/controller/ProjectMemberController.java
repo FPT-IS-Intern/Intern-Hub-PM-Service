@@ -37,10 +37,11 @@ public class ProjectMemberController {
     @Operation(summary = "Lấy danh sách thành viên dự án", description = "Trả về danh sách thành viên trong dự án có phân trang.")
     public ResponseApi<PaginatedData<ProjectMemberResponse>> getMembers(
             @PathVariable Long projectId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseApi.ok(projectMemberService.getMembers(projectId, page, size));
+        return ResponseApi.ok(projectMemberService.getMembers(projectId, keyword, page, size));
     }
 
     @PutMapping("/users/{memberId}")

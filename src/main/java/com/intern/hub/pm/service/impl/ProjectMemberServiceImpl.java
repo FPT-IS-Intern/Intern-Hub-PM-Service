@@ -15,8 +15,6 @@ import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.service.ProjectMemberService;
 import com.intern.hub.pm.utils.UserContext;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
-import com.intern.hub.pm.feign.model.HrmFilterRequest;
-import com.intern.hub.pm.feign.model.HrmFilterResponse;
 import com.intern.hub.library.common.dto.ResponseApi;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.library.common.exception.ForbiddenException;
@@ -80,31 +78,74 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         @Override
         @Transactional(readOnly = true)
-        public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, int page, int size) {
+        public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, String keyword, int page, int size) {
                 getActiveProject(projectId);
-                Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-                Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId,
-                                Status.ACTIVE,
-                                pageable);
-                List<Long> userIds = memberPage.getContent().stream()
-                                .map(ProjectMember::getUserId)
-                                .distinct()
-                                .toList();
+                String kw = keyword != null ? keyword.toLowerCase().trim() : "";
 
-                Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
+                if (kw.isEmpty()) {
+                        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+                        Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId,
+                                        Status.ACTIVE,
+                                        pageable);
+                        List<Long> userIds = memberPage.getContent().stream()
+                                        .map(ProjectMember::getUserId)
+                                        .distinct()
+                                        .toList();
+
+                        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
+                        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+
+                        List<ProjectMemberResponse> items = memberPage.getContent().stream()
+                                        .map(member -> toResponse(
+                                                        member,
+                                                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
+                                                        userDetailMap.get(member.getUserId())))
+                                        .toList();
+
+                        return PaginatedData.<ProjectMemberResponse>builder()
+                                        .items(items)
+                                        .totalItems(memberPage.getTotalElements())
+                                        .totalPages(memberPage.getTotalPages())
+                                        .build();
+                }
+
+                // If keyword is present, fetch all and filter in memory
+                List<ProjectMember> allMembers = projectMemberRepository
+                                .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
+
+                if (allMembers.isEmpty()) {
+                        return PaginatedData.<ProjectMemberResponse>builder()
+                                        .items(Collections.emptyList())
+                                        .totalItems(0L)
+                                        .totalPages(0)
+                                        .build();
+                }
+
+                List<Long> userIds = allMembers.stream().map(ProjectMember::getUserId).toList();
                 Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+                Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
 
-                List<ProjectMemberResponse> items = memberPage.getContent().stream()
+                List<ProjectMemberResponse> filteredItems = allMembers.stream()
                                 .map(member -> toResponse(
                                                 member,
                                                 teamCountByUserId.getOrDefault(member.getUserId(), 0L),
                                                 userDetailMap.get(member.getUserId())))
-                                .toList();
+                                .filter(res -> (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
+                                                || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw)))
+                                .collect(Collectors.toList());
+
+                int start = page * size;
+                int end = Math.min(start + size, filteredItems.size());
+                List<ProjectMemberResponse> pagedItems = start <= end && start <= filteredItems.size()
+                                ? filteredItems.subList(start, end)
+                                : Collections.emptyList();
+
+                int totalPages = (int) Math.ceil((double) filteredItems.size() / size);
 
                 return PaginatedData.<ProjectMemberResponse>builder()
-                                .items(items)
-                                .totalItems(memberPage.getTotalElements())
-                                .totalPages(memberPage.getTotalPages())
+                                .items(pagedItems)
+                                .totalItems((long) filteredItems.size())
+                                .totalPages(totalPages)
                                 .build();
         }
 
@@ -205,74 +246,4 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                                                 row -> (Long) row[1]));
         }
 
-        @Override
-        @Transactional(readOnly = true)
-        public ResponseApi<PaginatedData<HrmFilterResponse>> searchProjectMembers(Long projectId,
-                        HrmFilterRequest request,
-                        int page, int size) {
-                // 1. Fetch ProjectMember entities to get project-specific roles
-                List<ProjectMember> projectMembers = projectMemberRepository
-                                .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
-
-                if (projectMembers.isEmpty()) {
-                        return ResponseApi.ok(
-                                        PaginatedData.<HrmFilterResponse>builder()
-                                                        .items(java.util.Collections.emptyList())
-                                                        .totalItems(0L)
-                                                        .totalPages(0)
-                                                        .build());
-                }
-
-                // Build a map of userId -> project role
-                Map<Long, String> userRoleMap = projectMembers.stream()
-                                .collect(Collectors.toMap(ProjectMember::getUserId, ProjectMember::getRole,
-                                                (existing, replacement) -> existing));
-
-                List<Long> projectUserIds = projectMembers.stream()
-                                .map(ProjectMember::getUserId).toList();
-
-                // 2. Fetch full user models by IDs from HRM
-                ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient
-                                .getUsersByIdsInternal(projectUserIds);
-
-                if (hrmResponse.data() == null || hrmResponse.data().isEmpty()) {
-                        return ResponseApi.ok(
-                                        PaginatedData.<HrmFilterResponse>builder()
-                                                        .items(java.util.Collections.emptyList())
-                                                        .totalItems(0L)
-                                                        .totalPages(0)
-                                                        .build());
-                }
-
-                String keyword = request.getKeyword() != null ? request.getKeyword().toLowerCase().trim() : "";
-                List<HrmFilterResponse> filteredUsers = hrmResponse.data().stream()
-                                .filter(u -> keyword.isEmpty()
-                                                || (u.fullName() != null
-                                                                && u.fullName().toLowerCase().contains(keyword))
-                                                || (u.email() != null && u.email().toLowerCase().contains(keyword)))
-                                .map(u -> HrmFilterResponse.builder()
-                                                .userId(u.userId())
-                                                .fullName(u.fullName())
-                                                .email(u.email())
-                                                .avatarUrl(u.avatarUrl())
-                                                .role(u.userId() != null ? userRoleMap.get(Long.valueOf(u.userId()))
-                                                                : null)
-                                                .build())
-                                .toList();
-
-                int start = page * size;
-                int end = Math.min(start + size, filteredUsers.size());
-                List<HrmFilterResponse> pagedUsers = start <= end && start <= filteredUsers.size()
-                                ? filteredUsers.subList(start, end)
-                                : java.util.Collections.emptyList();
-
-                int totalPages = (int) Math.ceil((double) filteredUsers.size() / size);
-
-                return ResponseApi.ok(
-                                PaginatedData.<HrmFilterResponse>builder()
-                                                .items(pagedUsers)
-                                                .totalItems((long) filteredUsers.size())
-                                                .totalPages(totalPages)
-                                                .build());
-        }
 }
