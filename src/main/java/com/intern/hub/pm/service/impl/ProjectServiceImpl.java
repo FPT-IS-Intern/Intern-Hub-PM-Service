@@ -246,7 +246,7 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getId(), DocumentScope.PROJECT, DocumentType.CHARTER);
 
         return new ProjectResponse(
-                project.getId(),
+                String.valueOf(project.getId()),
                 project.getProjectUUID(),
                 project.getName(),
                 project.getDescription(),
@@ -254,8 +254,8 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getStatus(),
                 project.getBudgetToken(),
                 project.getRewardToken(),
-                project.getCreatorId(),
-                project.getAssigneeId(),
+                project.getCreatorId() != null ? String.valueOf(project.getCreatorId()) : null,
+                project.getAssigneeId() != null ? String.valueOf(project.getAssigneeId()) : null,
                 project.getDeliverableDescription(),
                 project.getDeliverableLink(),
                 project.getCompletionComment(),

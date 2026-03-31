@@ -1,7 +1,5 @@
 package com.intern.hub.pm.dto.team;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.model.constant.StatusWork;
 
@@ -9,8 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record TeamResponse(
-        @JsonSerialize(using = ToStringSerializer.class)
-        Long id,
+        String id,
         String teamUUID,
         String name,
         String description,
@@ -18,12 +15,9 @@ public record TeamResponse(
         StatusWork status,
         Long budgetToken,
         Long rewardToken,
-        @JsonSerialize(using = ToStringSerializer.class)
-        Long creatorId,
-        @JsonSerialize(using = ToStringSerializer.class)
-        Long assigneeId,
-        @JsonSerialize(using = ToStringSerializer.class)
-        Long projectId,
+        String creatorId,
+        String assigneeId,
+        String projectId,
         String deliverableDescription,
         String deliverableLink,
         String completionComment,

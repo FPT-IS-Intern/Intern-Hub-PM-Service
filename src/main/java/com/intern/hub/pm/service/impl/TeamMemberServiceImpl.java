@@ -168,9 +168,9 @@ public class TeamMemberServiceImpl implements TeamMemberService {
                 .orElse("DEVELOPER");
 
         return TeamMemberResponse.builder()
-                .id(member.getId())
-                .userId(member.getUserId())
-                .teamId(member.getTeam().getId())
+                .id(String.valueOf(member.getId()))
+                .userId(String.valueOf(member.getUserId()))
+                .teamId(String.valueOf(member.getTeam().getId()))
                 .fullName(userDetail != null ? userDetail.fullName() : "User (ID: " + member.getUserId() + ")")
                 .email(userDetail != null ? userDetail.email() : null)
                 .status(member.getStatus() != null ? member.getStatus().name() : null)

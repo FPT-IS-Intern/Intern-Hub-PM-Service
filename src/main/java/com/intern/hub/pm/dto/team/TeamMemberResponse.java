@@ -1,8 +1,6 @@
 package com.intern.hub.pm.dto.team;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.intern.hub.pm.model.constant.Status;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,16 +17,13 @@ import lombok.experimental.FieldDefaults;
 public class TeamMemberResponse {
 
     @JsonProperty("id")
-    @JsonSerialize(using = ToStringSerializer.class)
-    Long id;
+    String id;
 
     @JsonProperty("userId")
-    @JsonSerialize(using = ToStringSerializer.class)
-    Long userId;
+    String userId;
 
     @JsonProperty("teamId")
-    @JsonSerialize(using = ToStringSerializer.class)
-    Long teamId;
+    String teamId;
 
     String fullName;
     String email;

@@ -38,7 +38,12 @@ public class TeamMemberController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(teamMemberService.getMembers(teamId, keyword, page, size));
+        PaginatedData<TeamMemberResponse> response = teamMemberService.getMembers(teamId, keyword, page, size);
+        if (response != null && response.getItems() != null) {
+            System.out.println("[TeamMemberController] getMembers - teamId: " + teamId + ", count: " + response.getItems().size());
+            response.getItems().forEach(m -> System.out.println("  - Member: " + m.getFullName() + ", userId: " + m.getUserId() + ", id: " + m.getId()));
+        }
+        return ResponseApi.ok(response);
     }
 
     @DeleteMapping("/users/{memberId}")

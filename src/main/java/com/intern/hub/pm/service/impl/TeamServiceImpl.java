@@ -292,7 +292,7 @@ public class TeamServiceImpl implements TeamService {
         Integer memberCount = teamMemberRepository.countByTeamIdAndStatus(team.getId(), com.intern.hub.pm.model.constant.Status.ACTIVE);
 
         return new TeamResponse(
-                team.getId(),
+                String.valueOf(team.getId()),
                 team.getTeamUUID(),
                 team.getName(),
                 team.getDescription(),
@@ -300,9 +300,9 @@ public class TeamServiceImpl implements TeamService {
                 team.getStatus(),
                 team.getBudgetToken(),
                 team.getRewardToken(),
-                team.getCreatorId(),
-                team.getAssigneeId(),
-                team.getProject() != null ? team.getProject().getId() : null,
+                team.getCreatorId() != null ? String.valueOf(team.getCreatorId()) : null,
+                team.getAssigneeId() != null ? String.valueOf(team.getAssigneeId()) : null,
+                team.getProject() != null ? String.valueOf(team.getProject().getId()) : null,
                 team.getDeliverableDescription(),
                 team.getDeliverableLink(),
                 team.getCompletionComment(),

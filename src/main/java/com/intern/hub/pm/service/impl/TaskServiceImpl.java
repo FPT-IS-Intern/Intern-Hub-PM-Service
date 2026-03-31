@@ -354,16 +354,16 @@ public class TaskServiceImpl implements TaskService {
                 task.getId(), DocumentScope.TASK, DocumentType.DELIVERABLE);
 
         return new TaskResponse(
-                task.getId(),
-                task.getTeam() != null ? task.getTeam().getId() : null,
+                String.valueOf(task.getId()),
+                task.getTeam() != null ? String.valueOf(task.getTeam().getId()) : null,
                 task.getTaskUUID(),
                 task.getName(),
                 task.getDescription(),
                 task.getNote(),
                 task.getStatus(),
                 task.getRewardToken(),
-                task.getCreatorId(),
-                task.getAssigneeId(),
+                task.getCreatorId() != null ? String.valueOf(task.getCreatorId()) : null,
+                task.getAssigneeId() != null ? String.valueOf(task.getAssigneeId()) : null,
                 creatorName,
                 assigneeName,
                 charterDocuments,

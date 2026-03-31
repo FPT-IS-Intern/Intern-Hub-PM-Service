@@ -168,9 +168,9 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                         Long countProjectTeam,
                         HrmUserClientModel userDetail) {
                 return new ProjectMemberResponse(
-                                member.getId(),
-                                member.getProject().getId(),
-                                member.getUserId(),
+                                String.valueOf(member.getId()),
+                                String.valueOf(member.getProject().getId()),
+                                String.valueOf(member.getUserId()),
                                 userDetail != null ? userDetail.fullName() : null,
                                 userDetail != null ? userDetail.email() : null,
                                 countProjectTeam,

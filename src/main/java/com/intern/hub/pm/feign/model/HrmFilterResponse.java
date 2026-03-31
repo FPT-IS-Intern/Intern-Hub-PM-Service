@@ -1,8 +1,6 @@
 package com.intern.hub.pm.feign.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
