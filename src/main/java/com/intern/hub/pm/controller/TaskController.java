@@ -64,6 +64,15 @@ public class TaskController {
         return ResponseApi.ok(taskService.getProjectTeamTasks(teamId, filter, page, size));
     }
 
+    @PostMapping("/my-tasks/filter")
+    @Operation(summary = "Lấy danh sách task của tôi", description = "Trả về danh sách task của user đang đăng nhập có phân trang và hỗ trợ lọc qua RequestBody, không cần truyền teamId.")
+    public ResponseApi<PaginatedData<TaskResponse>> getMyFilteredTasks(
+            @RequestBody TaskFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseApi.ok(taskService.getMyTasks(filter, page, size));
+    }
+
     @GetMapping("/teams/{teamId}/tasks/statistics")
     @Operation(summary = "Lấy thống kê task theo team", description = "Trả số lượng task theo từng trạng thái trong team.")
     public ResponseApi<TaskStatisticsResponse> getTaskStatistics(@PathVariable Long teamId) {

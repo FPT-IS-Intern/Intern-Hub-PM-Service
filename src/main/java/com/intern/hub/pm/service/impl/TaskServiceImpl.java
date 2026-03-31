@@ -87,56 +87,13 @@ public class TaskServiceImpl implements TaskService {
     public PaginatedData<TaskResponse> getProjectTeamTasks(
             Long teamId, TaskFilterRequest filter,
             int page, int size) {
-        
-        Specification<Task> spec = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            
-            predicates.add(cb.equal(root.get("team").get("id"), teamId));
-            
-            if (filter.status() != null) {
-                predicates.add(cb.equal(root.get("status"), filter.status()));
-            } else {
-                predicates.add(cb.notEqual(root.get("status"), StatusWork.CANCELED));
-            }
-            
-            if (filter.name() != null && !filter.name().trim().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("name")), "%" + filter.name().toLowerCase().trim() + "%"));
-            }
-            
-            if (filter.startDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), filter.startDate()));
-            }
-            if (filter.endDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), filter.endDate()));
-            }
-            
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
+        return getTasks(buildTaskSpecification(teamId, null, filter), page, size);
+    }
 
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-        Page<Task> taskPage = taskRepository.findAll(spec, pageable);
-
-        List<Task> tasks = taskPage.getContent();
-        
-        List<Long> userIds = new ArrayList<>();
-        tasks.forEach(t -> {
-            if (t.getCreatorId() != null) userIds.add(t.getCreatorId());
-            if (t.getAssigneeId() != null) userIds.add(t.getAssigneeId());
-        });
-        
-        Map<Long, String> userNameMap = fetchUserNames(userIds.stream().distinct().toList());
-
-        List<TaskResponse> items = tasks.stream()
-                .map(t -> toResponseWithNames(t, 
-                        userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
-                .toList();
-
-        return PaginatedData.<TaskResponse>builder()
-                .items(items)
-                .totalItems(taskPage.getTotalElements())
-                .totalPages(taskPage.getTotalPages())
-                .build();
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<TaskResponse> getMyTasks(TaskFilterRequest filter, int page, int size) {
+        return getTasks(buildTaskSpecification(null, UserContext.requiredUserId(), filter), page, size);
     }
 
     private Map<Long, String> fetchUserNames(List<Long> userIds) {
@@ -259,30 +216,71 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedData<TaskResponse> getMyTasks(int page, int size) {
-        Long currentUserId = UserContext.requiredUserId();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-        org.springframework.data.domain.Page<Task> taskPage = taskRepository.findAllByAssigneeIdAndStatusNot(currentUserId, StatusWork.CANCELED, pageable);
+        return getMyTasks(TaskFilterRequest.builder().build(), page, size);
+    }
 
+    private PaginatedData<TaskResponse> getTasks(Specification<Task> specification, int page, int size) {
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                page,
+                size,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+        );
+        Page<Task> taskPage = taskRepository.findAll(specification, pageable);
         List<Task> tasks = taskPage.getContent();
+
         List<Long> userIds = tasks.stream()
                 .flatMap(t -> java.util.stream.Stream.of(t.getCreatorId(), t.getAssigneeId()))
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .toList();
-        
         Map<Long, String> userNameMap = fetchUserNames(userIds);
 
         List<TaskResponse> items = tasks.stream()
-                .map(t -> toResponseWithNames(t, 
+                .map(t -> toResponseWithNames(
+                        t,
                         userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
+                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")
+                ))
                 .toList();
 
-        return com.intern.hub.library.common.dto.PaginatedData.<TaskResponse>builder()
+        return PaginatedData.<TaskResponse>builder()
                 .items(items)
                 .totalItems(taskPage.getTotalElements())
                 .totalPages(taskPage.getTotalPages())
                 .build();
+    }
+
+    private Specification<Task> buildTaskSpecification(Long teamId, Long assigneeId, TaskFilterRequest filter) {
+        TaskFilterRequest safeFilter = filter != null ? filter : TaskFilterRequest.builder().build();
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (teamId != null) {
+                predicates.add(cb.equal(root.get("team").get("id"), teamId));
+            }
+            if (assigneeId != null) {
+                predicates.add(cb.equal(root.get("assigneeId"), assigneeId));
+            }
+
+            if (safeFilter.status() != null) {
+                predicates.add(cb.equal(root.get("status"), safeFilter.status()));
+            } else {
+                predicates.add(cb.notEqual(root.get("status"), StatusWork.CANCELED));
+            }
+
+            if (safeFilter.name() != null && !safeFilter.name().trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("name")), "%" + safeFilter.name().toLowerCase().trim() + "%"));
+            }
+
+            if (safeFilter.startDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), safeFilter.startDate()));
+            }
+            if (safeFilter.endDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), safeFilter.endDate()));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private Team getActiveTeam(Long teamId) {

@@ -38,212 +38,212 @@ import static com.intern.hub.library.common.dto.ResponseApi.*;
 @RequiredArgsConstructor
 public class ProjectMemberServiceImpl implements ProjectMemberService {
 
-        private final ProjectRepository projectRepository;
-        private final ProjectMemberRepository projectMemberRepository;
-        private final TeamRepository teamRepository;
-        private final HrmInternalFeignClient hrmInternalFeignClient;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final TeamRepository teamRepository;
+    private final HrmInternalFeignClient hrmInternalFeignClient;
 
-        @Override
-        @Transactional
-        public List<ProjectMemberResponse> addMembers(Long projectId, List<ProjectMemberCreateRequest> requests) {
-                Project project = getOwnedActiveProject(projectId);
+    @Override
+    @Transactional
+    public List<ProjectMemberResponse> addMembers(Long projectId, List<ProjectMemberCreateRequest> requests) {
+        Project project = getOwnedActiveProject(projectId);
 
-                List<ProjectMember> members = requests.stream().map(request -> {
-                        if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(),
-                                        Status.ACTIVE)) {
-                                throw new ConflictDataException(
-                                                "User ID " + request.userId() + " đã là thành viên của dự án");
-                        }
+        List<ProjectMember> members = requests.stream().map(request -> {
+            if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(),
+                    Status.ACTIVE)) {
+                throw new NotFoundException(
+                        "User ID " + request.userId() + " đã là thành viên của dự án");
+            }
 
-                        return ProjectMember.builder()
-                                        .project(project)
-                                        .userId(request.userId())
-                                        .role(request.role().trim())
-                                        .status(Status.ACTIVE)
-                                        .build();
-                }).toList();
+            return ProjectMember.builder()
+                    .project(project)
+                    .userId(request.userId())
+                    .role(request.role().trim())
+                    .status(Status.ACTIVE)
+                    .build();
+        }).toList();
 
-                List<ProjectMember> savedMembers = projectMemberRepository.saveAll(members);
-                List<Long> userIds = savedMembers.stream().map(ProjectMember::getUserId).toList();
-                Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
-                Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
+        List<ProjectMember> savedMembers = projectMemberRepository.saveAll(members);
+        List<Long> userIds = savedMembers.stream().map(ProjectMember::getUserId).toList();
+        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
 
-                return savedMembers.stream()
-                                .map(member -> toResponse(
-                                                member,
-                                                teamCountByUserId.getOrDefault(member.getUserId(), 0L),
-                                                userDetailMap.get(member.getUserId())))
-                                .toList();
+        return savedMembers.stream()
+                .map(member -> toResponse(
+                        member,
+                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        userDetailMap.get(member.getUserId())))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, String keyword, int page, int size) {
+        getActiveProject(projectId);
+        String kw = keyword != null ? keyword.toLowerCase().trim() : "";
+
+        if (kw.isEmpty()) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+            Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId,
+                    Status.ACTIVE,
+                    pageable);
+            List<Long> userIds = memberPage.getContent().stream()
+                    .map(ProjectMember::getUserId)
+                    .distinct()
+                    .toList();
+
+            Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
+            Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+
+            List<ProjectMemberResponse> items = memberPage.getContent().stream()
+                    .map(member -> toResponse(
+                            member,
+                            teamCountByUserId.getOrDefault(member.getUserId(), 0L),
+                            userDetailMap.get(member.getUserId())))
+                    .toList();
+
+            return PaginatedData.<ProjectMemberResponse>builder()
+                    .items(items)
+                    .totalItems(memberPage.getTotalElements())
+                    .totalPages(memberPage.getTotalPages())
+                    .build();
         }
 
-        @Override
-        @Transactional(readOnly = true)
-        public PaginatedData<ProjectMemberResponse> getMembers(Long projectId, String keyword, int page, int size) {
-                getActiveProject(projectId);
-                String kw = keyword != null ? keyword.toLowerCase().trim() : "";
+        // If keyword is present, fetch all and filter in memory
+        List<ProjectMember> allMembers = projectMemberRepository
+                .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
 
-                if (kw.isEmpty()) {
-                        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-                        Page<ProjectMember> memberPage = projectMemberRepository.findAllByProjectIdAndStatus(projectId,
-                                        Status.ACTIVE,
-                                        pageable);
-                        List<Long> userIds = memberPage.getContent().stream()
-                                        .map(ProjectMember::getUserId)
-                                        .distinct()
-                                        .toList();
-
-                        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
-                        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
-
-                        List<ProjectMemberResponse> items = memberPage.getContent().stream()
-                                        .map(member -> toResponse(
-                                                        member,
-                                                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
-                                                        userDetailMap.get(member.getUserId())))
-                                        .toList();
-
-                        return PaginatedData.<ProjectMemberResponse>builder()
-                                        .items(items)
-                                        .totalItems(memberPage.getTotalElements())
-                                        .totalPages(memberPage.getTotalPages())
-                                        .build();
-                }
-
-                // If keyword is present, fetch all and filter in memory
-                List<ProjectMember> allMembers = projectMemberRepository
-                                .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
-
-                if (allMembers.isEmpty()) {
-                        return PaginatedData.<ProjectMemberResponse>builder()
-                                        .items(Collections.emptyList())
-                                        .totalItems(0L)
-                                        .totalPages(0)
-                                        .build();
-                }
-
-                List<Long> userIds = allMembers.stream().map(ProjectMember::getUserId).toList();
-                Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
-                Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
-
-                List<ProjectMemberResponse> filteredItems = allMembers.stream()
-                                .map(member -> toResponse(
-                                                member,
-                                                teamCountByUserId.getOrDefault(member.getUserId(), 0L),
-                                                userDetailMap.get(member.getUserId())))
-                                .filter(res -> (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
-                                                || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw)))
-                                .collect(Collectors.toList());
-
-                int start = page * size;
-                int end = Math.min(start + size, filteredItems.size());
-                List<ProjectMemberResponse> pagedItems = start <= end && start <= filteredItems.size()
-                                ? filteredItems.subList(start, end)
-                                : Collections.emptyList();
-
-                int totalPages = (int) Math.ceil((double) filteredItems.size() / size);
-
-                return PaginatedData.<ProjectMemberResponse>builder()
-                                .items(pagedItems)
-                                .totalItems((long) filteredItems.size())
-                                .totalPages(totalPages)
-                                .build();
+        if (allMembers.isEmpty()) {
+            return PaginatedData.<ProjectMemberResponse>builder()
+                    .items(Collections.emptyList())
+                    .totalItems(0L)
+                    .totalPages(0)
+                    .build();
         }
 
-        @Override
-        @Transactional
-        public ProjectMemberResponse updateMember(Long memberId, ProjectMemberUpdateRequest request) {
-                ProjectMember member = getActiveMember(memberId);
-                assertProjectOwner(member.getProject());
-                member.setRole(request.role().trim());
-                return toResponse(projectMemberRepository.save(member));
+        List<Long> userIds = allMembers.stream().map(ProjectMember::getUserId).toList();
+        Map<Long, HrmUserClientModel> userDetailMap = getUserDetailMap(userIds);
+        Map<Long, Long> teamCountByUserId = getTeamCountByUserIds(userIds, projectId);
+
+        List<ProjectMemberResponse> filteredItems = allMembers.stream()
+                .map(member -> toResponse(
+                        member,
+                        teamCountByUserId.getOrDefault(member.getUserId(), 0L),
+                        userDetailMap.get(member.getUserId())))
+                .filter(res -> (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
+                        || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw)))
+                .collect(Collectors.toList());
+
+        int start = page * size;
+        int end = Math.min(start + size, filteredItems.size());
+        List<ProjectMemberResponse> pagedItems = start <= end && start <= filteredItems.size()
+                ? filteredItems.subList(start, end)
+                : Collections.emptyList();
+
+        int totalPages = (int) Math.ceil((double) filteredItems.size() / size);
+
+        return PaginatedData.<ProjectMemberResponse>builder()
+                .items(pagedItems)
+                .totalItems((long) filteredItems.size())
+                .totalPages(totalPages)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ProjectMemberResponse updateMember(Long memberId, ProjectMemberUpdateRequest request) {
+        ProjectMember member = getActiveMember(memberId);
+        assertProjectOwner(member.getProject());
+        member.setRole(request.role().trim());
+        return toResponse(projectMemberRepository.save(member));
+    }
+
+    @Override
+    @Transactional
+    public void deleteMember(Long memberId) {
+        ProjectMember member = getActiveMember(memberId);
+        assertProjectOwner(member.getProject());
+        member.setStatus(Status.DELETED);
+        projectMemberRepository.save(member);
+    }
+
+    private ProjectMember getActiveMember(Long memberId) {
+        return projectMemberRepository.findByIdAndStatus(memberId, Status.ACTIVE)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy user này trong dự án"));
+    }
+
+    private Project getOwnedActiveProject(Long projectId) {
+        Project project = getActiveProject(projectId);
+        assertProjectOwner(project);
+        return project;
+    }
+
+    private Project getActiveProject(Long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
+        if (project.getStatus() == StatusWork.CANCELED) {
+            throw new NotFoundException("Không tìm thấy dự án");
+        }
+        return project;
+    }
+
+    private void assertProjectOwner(Project project) {
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(project.getCreatorId())) {
+            throw new ForbiddenException("Bạn không phải là chủ dự án này!");
+        }
+    }
+
+    private ProjectMemberResponse toResponse(ProjectMember member) {
+        Long projectId = member.getProject().getId();
+        Long countProjectTeam = teamRepository.countByAssigneeIdAndProjectIdAndStatusNot(
+                member.getUserId(),
+                projectId,
+                StatusWork.CANCELED);
+        HrmUserClientModel userDetail = hrmInternalFeignClient.getUserByIdInternal(member.getUserId()).data();
+        return toResponse(member, countProjectTeam, userDetail);
+    }
+
+    private ProjectMemberResponse toResponse(
+            ProjectMember member,
+            Long countProjectTeam,
+            HrmUserClientModel userDetail) {
+        return new ProjectMemberResponse(
+                String.valueOf(member.getId()),
+                String.valueOf(member.getProject().getId()),
+                String.valueOf(member.getUserId()),
+                userDetail != null ? userDetail.fullName() : null,
+                userDetail != null ? userDetail.email() : null,
+                countProjectTeam,
+                member.getRole(),
+                member.getStatus(),
+                member.getCreatedAt(),
+                member.getUpdatedAt());
+    }
+
+    private Map<Long, HrmUserClientModel> getUserDetailMap(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient
+                .getUsersByIdsInternal(userIds);
+        if (hrmResponse.data() == null) {
+            return Collections.emptyMap();
+        }
+        return hrmResponse.data().stream()
+                .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
+    }
+
+    private Map<Long, Long> getTeamCountByUserIds(List<Long> userIds, Long projectId) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        @Override
-        @Transactional
-        public void deleteMember(Long memberId) {
-                ProjectMember member = getActiveMember(memberId);
-                assertProjectOwner(member.getProject());
-                member.setStatus(Status.DELETED);
-                projectMemberRepository.save(member);
-        }
-
-        private ProjectMember getActiveMember(Long memberId) {
-                return projectMemberRepository.findByIdAndStatus(memberId, Status.ACTIVE)
-                                .orElseThrow(() -> new NotFoundException("Không tìm thấy user này trong dự án"));
-        }
-
-        private Project getOwnedActiveProject(Long projectId) {
-                Project project = getActiveProject(projectId);
-                assertProjectOwner(project);
-                return project;
-        }
-
-        private Project getActiveProject(Long projectId) {
-                Project project = projectRepository.findById(projectId)
-                                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
-                if (project.getStatus() == StatusWork.CANCELED) {
-                        throw new NotFoundException("Không tìm thấy dự án");
-                }
-                return project;
-        }
-
-        private void assertProjectOwner(Project project) {
-                Long currentUserId = UserContext.requiredUserId();
-                if (!currentUserId.equals(project.getCreatorId())) {
-                        throw new ForbiddenException("Bạn không phải là chủ dự án này!");
-                }
-        }
-
-        private ProjectMemberResponse toResponse(ProjectMember member) {
-                Long projectId = member.getProject().getId();
-                Long countProjectTeam = teamRepository.countByAssigneeIdAndProjectIdAndStatusNot(
-                                member.getUserId(),
-                                projectId,
-                                StatusWork.CANCELED);
-                HrmUserClientModel userDetail = hrmInternalFeignClient.getUserByIdInternal(member.getUserId()).data();
-                return toResponse(member, countProjectTeam, userDetail);
-        }
-
-        private ProjectMemberResponse toResponse(
-                        ProjectMember member,
-                        Long countProjectTeam,
-                        HrmUserClientModel userDetail) {
-                return new ProjectMemberResponse(
-                                String.valueOf(member.getId()),
-                                String.valueOf(member.getProject().getId()),
-                                String.valueOf(member.getUserId()),
-                                userDetail != null ? userDetail.fullName() : null,
-                                userDetail != null ? userDetail.email() : null,
-                                countProjectTeam,
-                                member.getRole(),
-                                member.getStatus(),
-                                member.getCreatedAt(),
-                                member.getUpdatedAt());
-        }
-
-        private Map<Long, HrmUserClientModel> getUserDetailMap(List<Long> userIds) {
-                if (userIds.isEmpty()) {
-                        return Collections.emptyMap();
-                }
-                ResponseApi<List<HrmUserClientModel>> hrmResponse = hrmInternalFeignClient
-                                .getUsersByIdsInternal(userIds);
-                if (hrmResponse.data() == null) {
-                        return Collections.emptyMap();
-                }
-                return hrmResponse.data().stream()
-                                .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
-        }
-
-        private Map<Long, Long> getTeamCountByUserIds(List<Long> userIds, Long projectId) {
-                if (userIds.isEmpty()) {
-                        return Collections.emptyMap();
-                }
-
-                return teamRepository.countTeamsByAssigneeIds(userIds, projectId, StatusWork.CANCELED)
-                                .stream()
-                                .collect(Collectors.toMap(
-                                                row -> (Long) row[0],
-                                                row -> (Long) row[1]));
-        }
+        return teamRepository.countTeamsByAssigneeIds(userIds, projectId, StatusWork.CANCELED)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
+    }
 
 }

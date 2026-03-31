@@ -20,6 +20,11 @@ public interface TaskService {
             Long teamId, TaskFilterRequest filter,
             int page, int size);
 
+    PaginatedData<TaskResponse> getMyTasks(
+            TaskFilterRequest filter,
+            int page,
+            int size);
+
     TaskResponse getTask(Long taskId);
 
     TaskResponse updateTask(Long taskId, TaskUpsertRequest request, List<MultipartFile> files);
