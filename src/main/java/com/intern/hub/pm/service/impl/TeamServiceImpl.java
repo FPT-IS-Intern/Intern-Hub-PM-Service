@@ -80,18 +80,18 @@ public class TeamServiceImpl implements TeamService {
     }
 
     private PaginatedData<TeamResponse> toPaginatedResponse(List<Team> teams, Page<Team> teamPage) {
-        List<Long> leadIds = teams.stream()
-                .map(Team::getAssigneeId)
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .toList();
+        java.util.Set<Long> userIds = new java.util.HashSet<>();
+        teams.forEach(t -> {
+            if (t.getAssigneeId() != null) userIds.add(t.getAssigneeId());
+            if (t.getCreatorId() != null) userIds.add(t.getCreatorId());
+        });
 
-        Map<Long, String> leadNameMap = new HashMap<>();
-        if (!leadIds.isEmpty()) {
+        Map<Long, String> userNameMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
             try {
-                var response = hrmInternalFeignClient.getUsersByIdsInternal(leadIds);
+                var response = hrmInternalFeignClient.getUsersByIdsInternal(new java.util.ArrayList<>(userIds));
                 if (response != null && response.data() != null) {
-                    response.data().forEach(u -> leadNameMap.put(Long.valueOf(u.userId()), u.fullName()));
+                    response.data().forEach(u -> userNameMap.put(Long.valueOf(u.userId()), u.fullName()));
                 }
             } catch (Exception e) {
                 // Keep default IDs if HRM call fails
@@ -101,7 +101,8 @@ public class TeamServiceImpl implements TeamService {
         return PaginatedData.<TeamResponse>builder()
                 .items(teams.stream()
                         .map(t -> toResponseWithLead(t,
-                                leadNameMap.getOrDefault(t.getAssigneeId(), "Lead (ID: " + t.getAssigneeId() + ")")))
+                                userNameMap.getOrDefault(t.getAssigneeId(), "Lead (ID: " + t.getAssigneeId() + ")"),
+                                userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")")))
                         .toList())
                 .totalItems(teamPage.getTotalElements())
                 .totalPages(teamPage.getTotalPages())
@@ -317,20 +318,31 @@ public class TeamServiceImpl implements TeamService {
 
     private TeamResponse toResponse(Team team) {
         String leadName = "Lead (ID: " + team.getAssigneeId() + ")";
-        if (team.getAssigneeId() != null) {
-            try {
+        String creatorName = "User (ID: " + team.getCreatorId() + ")";
+        try {
+            if (team.getAssigneeId() != null) {
                 var response = hrmInternalFeignClient.getUserByIdInternal(team.getAssigneeId());
                 if (response != null && response.data() != null) {
                     leadName = response.data().fullName();
                 }
-            } catch (Exception e) {
-                // Ignore
             }
+            if (team.getCreatorId() != null) {
+                if (team.getCreatorId().equals(team.getAssigneeId())) {
+                    creatorName = leadName;
+                } else {
+                    var response = hrmInternalFeignClient.getUserByIdInternal(team.getCreatorId());
+                    if (response != null && response.data() != null) {
+                        creatorName = response.data().fullName();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
         }
-        return toResponseWithLead(team, leadName);
+        return toResponseWithLead(team, leadName, creatorName);
     }
 
-    private TeamResponse toResponseWithLead(Team team, String leadName) {
+    private TeamResponse toResponseWithLead(Team team, String leadName, String creatorName) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 team.getId(),
                 DocumentScope.TEAM,
@@ -350,6 +362,7 @@ public class TeamServiceImpl implements TeamService {
                 team.getRewardToken(),
                 team.getCreatorId() != null ? String.valueOf(team.getCreatorId()) : null,
                 team.getAssigneeId() != null ? String.valueOf(team.getAssigneeId()) : null,
+                creatorName,
                 team.getProject() != null ? String.valueOf(team.getProject().getId()) : null,
                 team.getDeliverableDescription(),
                 team.getDeliverableLink(),

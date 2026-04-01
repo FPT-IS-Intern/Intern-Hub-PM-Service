@@ -17,6 +17,7 @@ public record TeamResponse(
         Long rewardToken,
         String creatorId,
         String assigneeId,
+        String creatorName,
         String projectId,
         String deliverableDescription,
         String deliverableLink,
