@@ -65,7 +65,7 @@ public class TaskController {
     }
 
     @PostMapping("/my-tasks/filter")
-    @Operation(summary = "Lấy danh sách task của tôi", description = "Trả về danh sách task của user đang đăng nhập có phân trang và hỗ trợ lọc qua RequestBody, không cần truyền teamId.")
+    @Operation(summary = "Lấy danh sách task của tôi", description = "Trả về danh sách task của user đang đăng nhập có phân trang và hỗ trợ filter")
     public ResponseApi<PaginatedData<TaskResponse>> getMyFilteredTasks(
             @RequestBody TaskFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
@@ -115,9 +115,8 @@ public class TaskController {
     @PostMapping("/tasks/{taskId}/approve")
     @Operation(summary = "Duyệt task", description = "Duyệt task khi task đang ở trạng thái chờ duyệt.")
     public ResponseApi<TaskResponse> approveTask(
-            @PathVariable Long taskId,
-            @Valid @RequestBody TaskReviewRequest request) {
-        return ResponseApi.ok(taskService.approveTask(taskId, request));
+            @PathVariable Long taskId) {
+        return ResponseApi.ok(taskService.approveTask(taskId));
     }
 
     @PostMapping("/tasks/{taskId}/refuse")
@@ -128,11 +127,10 @@ public class TaskController {
         return ResponseApi.ok(taskService.refuseTask(taskId, request));
     }
 
-    @GetMapping("/my-tasks")
-    @Operation(summary = "Lấy task của tôi", description = "Trả về danh sách task được giao cho người dùng hiện tại có phân trang.")
-    public ResponseApi<PaginatedData<TaskResponse>> getMyTasks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(taskService.getMyTasks(page, size));
+    @PostMapping("/tasks/{taskId}/accept")
+    @Operation(summary = "Nhận task", description = "Nhận task để làm (cấp ngân sách).")
+    public ResponseApi<TaskResponse> acceptTask(
+            @PathVariable Long taskId) {
+        return ResponseApi.ok(taskService.acceptTask(taskId));
     }
 }

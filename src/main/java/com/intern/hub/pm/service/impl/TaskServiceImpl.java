@@ -1,6 +1,7 @@
 package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.library.common.dto.PaginatedData;
+import com.intern.hub.library.common.exception.InternalErrorException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.task.TaskFilterRequest;
 import com.intern.hub.pm.dto.task.TaskResponse;
@@ -133,6 +134,17 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskResponse acceptTask(Long taskId) {
+        Task task = getActiveTask(taskId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(task.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao task mới có thể nhận task");
+        }
+        task.setStatus(StatusWork.IN_PROGRESS);
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public TaskResponse getTask(Long taskId) {
         return toResponse(getActiveTask(taskId));
@@ -196,7 +208,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskResponse approveTask(Long taskId, TaskReviewRequest request) {
+    public TaskResponse approveTask(Long taskId) {
         Task task = getPendingReviewTask(taskId);
         assertTaskOwner(task);
         task.setStatus(StatusWork.COMPLETED);
@@ -211,12 +223,6 @@ public class TaskServiceImpl implements TaskService {
         task.setStatus(StatusWork.NEEDS_REVISION);
         task.setNote(trimToNull(request.reviewComment()));
         return toResponse(taskRepository.save(task));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaginatedData<TaskResponse> getMyTasks(int page, int size) {
-        return getMyTasks(TaskFilterRequest.builder().build(), page, size);
     }
 
     private PaginatedData<TaskResponse> getTasks(Specification<Task> specification, int page, int size) {
@@ -303,7 +309,7 @@ public class TaskServiceImpl implements TaskService {
 
     private Task getActiveTask(Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new NotFoundException("Task not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy task"));
         if (task.getStatus() == StatusWork.CANCELED) {
             throw new NotFoundException("Task not found");
         }
@@ -313,7 +319,7 @@ public class TaskServiceImpl implements TaskService {
     private Task getPendingReviewTask(Long taskId) {
         Task task = getActiveTask(taskId);
         if (task.getStatus() != StatusWork.PENDING_REVIEW) {
-            throw new BadRequestException("Task must be pending review");
+            throw new BadRequestException("Nhiệm vụ phải đang chờ duyệt");
         }
         return task;
     }
@@ -321,7 +327,7 @@ public class TaskServiceImpl implements TaskService {
     private void assertTaskOwner(Task task) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(task.getCreatorId())) {
-            throw new ForbiddenException("Only the task creator can modify this task");
+            throw new ForbiddenException("Bạn không có quyền ở task này!");
         }
     }
 
@@ -339,7 +345,7 @@ public class TaskServiceImpl implements TaskService {
                 if (res != null && res.data() != null) assigneeName = res.data().fullName();
             }
         } catch (Exception e) {
-            // Ignore
+            throw new InternalErrorException(e.getMessage());
         }
         
         return toResponseWithNames(task, creatorName, assigneeName);

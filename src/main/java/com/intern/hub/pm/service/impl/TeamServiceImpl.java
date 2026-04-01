@@ -8,6 +8,7 @@ import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.model.HrmUserClientModel;
 import com.intern.hub.pm.model.constant.StatusWork;
+import com.intern.hub.pm.model.team.Task;
 import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
@@ -177,7 +178,7 @@ public class TeamServiceImpl implements TeamService {
         validateDateRange(request.startDate(), request.endDate());
 
         if (team.getStatus() != StatusWork.NOT_STARTED) {
-            throw new ConflictDataException("Chi duoc sua khi team chua bat dau");
+            throw new ConflictDataException("Chỉ được sửa khi dự án team chưa bắt đầu");
         }
 
         team.setName(request.name().trim());
@@ -249,6 +250,17 @@ public class TeamServiceImpl implements TeamService {
 
         team.setStatus(StatusWork.COMPLETED);
         team.setNote(trimToNull(request.note()));
+        return toResponse(teamRepository.save(team));
+    }
+
+    @Override
+    public TeamResponse acceptTeam(Long teamId) {
+        Team team = getActiveTeam(teamId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(team.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao mới có thể nhận dự án");
+        }
+        team.setStatus(StatusWork.IN_PROGRESS);
         return toResponse(teamRepository.save(team));
     }
 

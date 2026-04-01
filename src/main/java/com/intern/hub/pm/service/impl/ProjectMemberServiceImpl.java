@@ -52,7 +52,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         List<ProjectMember> members = requests.stream().map(request -> {
             if (projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, request.userId(),
                     Status.ACTIVE)) {
-                throw new NotFoundException(
+                throw new BadRequestException(
                         "User ID " + request.userId() + " đã là thành viên của dự án");
             }
 

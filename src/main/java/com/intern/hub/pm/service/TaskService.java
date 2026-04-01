@@ -20,7 +20,7 @@ public interface TaskService {
             Long teamId, TaskFilterRequest filter,
             int page, int size);
 
-    PaginatedData<TaskResponse> getMyTasks(
+        PaginatedData<TaskResponse> getMyTasks(
             TaskFilterRequest filter,
             int page,
             int size);
@@ -33,11 +33,12 @@ public interface TaskService {
 
     TaskResponse submitTask(Long taskId, String deliverableDescription, String deliverableLink, List<MultipartFile> files);
 
-    TaskResponse approveTask(Long taskId, TaskReviewRequest request);
+    TaskResponse approveTask(Long taskId);
 
     TaskResponse refuseTask(Long taskId, TaskReviewRequest request);
 
-    PaginatedData<TaskResponse> getMyTasks(int page, int size);
-
     TaskStatisticsResponse getTaskStatistics(Long teamId);
+
+    TaskResponse acceptTask(Long taskId);
+
 }

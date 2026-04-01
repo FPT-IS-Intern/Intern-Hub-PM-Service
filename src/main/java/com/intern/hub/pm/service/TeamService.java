@@ -26,4 +26,6 @@ public interface TeamService {
     TeamResponse completeTeam(Long teamId, TeamCompleteRequest request);
 
     TeamResponse approveTeam(Long teamId, ApproveRequest request);
+
+    TeamResponse acceptTeam(Long teamId);
 }

@@ -4,6 +4,7 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
 import com.intern.hub.library.common.exception.ForbiddenException;
 import com.intern.hub.pm.dto.project.ApproveRequest;
+import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.team.TeamCompleteRequest;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.dto.team.TeamUpsertRequest;
@@ -117,5 +118,12 @@ public class TeamController {
             @PathVariable Long teamId,
             @Valid @RequestBody ApproveRequest request) {
         return ResponseApi.ok(teamService.approveTeam(teamId, request));
+    }
+
+    @PostMapping("/{teamId}/accept")
+    @Operation(summary = "Nhận dự án team", description = "Nhận dự án team để làm (cấp ngân sách).")
+    public ResponseApi<TeamResponse> acceptTeam(
+            @PathVariable Long teamId) {
+        return ResponseApi.ok(teamService.acceptTeam(teamId));
     }
 }

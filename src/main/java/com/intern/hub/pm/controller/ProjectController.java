@@ -7,6 +7,7 @@ import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
 import com.intern.hub.pm.dto.project.ProjectFilterRequest;
 import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
+import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
@@ -104,14 +105,6 @@ public class ProjectController {
         return ResponseApi.noContent();
     }
 
-    // @PostMapping("/{projectId}/extend")
-    // @Operation(summary = "Gia hạn dự án", description = "Cập nhật thời gian kết
-    // thúc và lưu lý do gia hạn dự án.")
-    // public ProjectResponse extendProject(@PathVariable Long projectId,
-    // @Valid @RequestBody ProjectExtendRequest request) {
-    // return projectService.extendProject(projectId, request);
-    // }
-
     @PostMapping("/{projectId}/complete")
     @Operation(summary = "Nộp dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> completeProject(
@@ -127,5 +120,12 @@ public class ProjectController {
             @Valid @RequestBody ApproveRequest request) {
         return null;
         // return ResponseApi.ok(projectService.completeProject(projectId, request));
+    }
+
+    @PostMapping("/{projectId}/accept")
+    @Operation(summary = "Nhận dự án", description = "Nhận dự án để làm (cấp ngân sách).")
+    public ResponseApi<ProjectResponse> acceptTeam(
+            @PathVariable Long projectId) {
+        return ResponseApi.ok(projectService.acceptProject(projectId));
     }
 }

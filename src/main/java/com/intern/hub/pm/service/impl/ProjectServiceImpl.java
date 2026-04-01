@@ -225,6 +225,17 @@ public class ProjectServiceImpl implements ProjectService {
         return null;
     }
 
+    @Override
+    public ProjectResponse acceptProject(Long projectId) {
+        Project project = getActiveProject(projectId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(project.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao mới có thể nhận dự án");
+        }
+        project.setStatus(StatusWork.IN_PROGRESS);
+        return toResponse(projectRepository.save(project));
+    }
+
     private Project getActiveProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án"));
