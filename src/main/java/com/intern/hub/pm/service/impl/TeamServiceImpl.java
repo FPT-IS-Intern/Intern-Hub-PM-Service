@@ -68,13 +68,13 @@ public class TeamServiceImpl implements TeamService {
         Page<Team> teamPage = teamRepository.findAll(spec, pageable);
 
         List<Team> teams = teamPage.getContent();
-        
+
         List<Long> leadIds = teams.stream()
                 .map(Team::getAssigneeId)
                 .filter(java.util.Objects::nonNull)
                 .distinct()
                 .toList();
-        
+
         Map<Long, String> leadNameMap = new HashMap<>();
         if (!leadIds.isEmpty()) {
             try {
@@ -89,7 +89,8 @@ public class TeamServiceImpl implements TeamService {
 
         return PaginatedData.<TeamResponse>builder()
                 .items(teams.stream()
-                        .map(t -> toResponseWithLead(t, leadNameMap.getOrDefault(t.getAssigneeId(), "Lead (ID: " + t.getAssigneeId() + ")")))
+                        .map(t -> toResponseWithLead(t,
+                                leadNameMap.getOrDefault(t.getAssigneeId(), "Lead (ID: " + t.getAssigneeId() + ")")))
                         .toList())
                 .totalItems(teamPage.getTotalElements())
                 .totalPages(teamPage.getTotalPages())
@@ -164,8 +165,7 @@ public class TeamServiceImpl implements TeamService {
                 DocumentType.CHARTER,
                 userId,
                 "pm/teams/" + savedTeam.getId() + "/charter",
-                files
-        );
+                files);
 
         return toResponse(savedTeam);
     }
@@ -178,7 +178,7 @@ public class TeamServiceImpl implements TeamService {
         validateDateRange(request.startDate(), request.endDate());
 
         if (team.getStatus() != StatusWork.NOT_STARTED) {
-            throw new ConflictDataException("Chỉ được sửa khi dự án team chưa bắt đầu");
+            throw new ConflictDataException("Chỉ được sửa khi Team chưa bắt đầu");
         }
 
         team.setName(request.name().trim());
@@ -198,8 +198,7 @@ public class TeamServiceImpl implements TeamService {
                 DocumentType.CHARTER,
                 UserContext.requiredUserId(),
                 "pm/teams/" + savedTeam.getId() + "/charter",
-                files
-        );
+                files);
 
         return toResponse(savedTeam);
     }
@@ -227,8 +226,7 @@ public class TeamServiceImpl implements TeamService {
         long incompleteTaskCount = taskRepository.countByTeamIdAndStatusNotAndStatusNot(
                 teamId,
                 StatusWork.COMPLETED,
-                StatusWork.CANCELED
-        );
+                StatusWork.CANCELED);
         if (incompleteTaskCount > 0) {
             throw new ConflictDataException("Vẫn còn task trong team chưa được duyệt hoàn thành");
         }
@@ -310,10 +308,10 @@ public class TeamServiceImpl implements TeamService {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 team.getId(),
                 DocumentScope.TEAM,
-                DocumentType.CHARTER
-        );
+                DocumentType.CHARTER);
 
-        Integer memberCount = teamMemberRepository.countByTeamIdAndStatus(team.getId(), com.intern.hub.pm.model.constant.Status.ACTIVE);
+        Integer memberCount = teamMemberRepository.countByTeamIdAndStatus(team.getId(),
+                com.intern.hub.pm.model.constant.Status.ACTIVE);
 
         return new TeamResponse(
                 String.valueOf(team.getId()),
@@ -336,8 +334,7 @@ public class TeamServiceImpl implements TeamService {
                 leadName,
                 memberCount != null ? memberCount : 0,
                 team.getCreatedAt(),
-                team.getUpdatedAt()
-        );
+                team.getUpdatedAt());
     }
 
     private String trimToNull(String value) {

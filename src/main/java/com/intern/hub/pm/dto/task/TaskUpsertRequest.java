@@ -9,10 +9,11 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public record TaskUpsertRequest(
-                @NotBlank String name,
-                String description,
-                @NotNull @Min(0) Long rewardToken,
-                @NotNull @JsonSerialize(using = ToStringSerializer.class) Long assigneeId,
-                @NotNull LocalDateTime startDate,
-                @NotNull LocalDateTime endDate) {
+        @NotBlank String name,
+        String description,
+        @NotNull @Min(0) Long rewardToken,
+        @NotNull @JsonSerialize(using = ToStringSerializer.class) Long assigneeId,
+        @NotNull LocalDateTime startDate,
+        @NotNull LocalDateTime endDate)
+{
 }

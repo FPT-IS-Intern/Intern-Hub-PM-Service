@@ -46,7 +46,7 @@ public class TaskController {
     private final TaskService taskService;
 
     @PostMapping(value = "/teams/{teamId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Tạo task", description = "Tạo mới task trong dự án team")
+    @Operation(summary = "Tạo task", description = "Tạo mới task trong Team")
     public ResponseApi<TaskResponse> createTask(
             @PathVariable Long teamId,
             @Valid @RequestPart("request") TaskUpsertRequest request,
@@ -55,7 +55,7 @@ public class TaskController {
     }
 
     @PostMapping("/teams/{teamId}/tasks/filter")
-    @Operation(summary = "Lấy danh sách task theo dự án team ", description = "Trả về danh sách task của dự án team có phân trang và hỗ trợ lọc qua RequestBody.")
+    @Operation(summary = "Lấy danh sách task theo Team ", description = "Trả về danh sách task của Team có phân trang và hỗ trợ lọc qua RequestBody.")
     public ResponseApi<PaginatedData<TaskResponse>> getProjectTeamTasks(
             @PathVariable Long teamId,
             @RequestBody TaskFilterRequest filter,
@@ -133,4 +133,12 @@ public class TaskController {
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.acceptTask(taskId));
     }
+
+    @PostMapping("/tasks/{taskId}/reject")
+    @Operation(summary = "Từ chối nhận task", description = "User từ chối nhận task được giao (trạng thái sẽ chuyển sang REJECTED).")
+    public ResponseApi<TaskResponse> refuseToAccept(
+            @PathVariable Long taskId) {
+        return ResponseApi.ok(taskService.refuseTask(taskId));
+    }
+
 }

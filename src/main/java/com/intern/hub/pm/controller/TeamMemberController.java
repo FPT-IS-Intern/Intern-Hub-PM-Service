@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("${api.prefix}/teams")
-@Tag(name = "Thành viên team", description = "Các thao tác quản lý thành viên trong dự án team")
+@Tag(name = "Thành viên team", description = "Các thao tác quản lý thành viên trong Team")
 @SecurityRequirement(name = "Bearer")
 public class TeamMemberController {
 
@@ -40,8 +40,10 @@ public class TeamMemberController {
             @RequestParam(defaultValue = "10") int size) {
         PaginatedData<TeamMemberResponse> response = teamMemberService.getMembers(teamId, keyword, page, size);
         if (response != null && response.getItems() != null) {
-            System.out.println("[TeamMemberController] getMembers - teamId: " + teamId + ", count: " + response.getItems().size());
-            response.getItems().forEach(m -> System.out.println("  - Member: " + m.getFullName() + ", userId: " + m.getUserId() + ", id: " + m.getId()));
+            System.out.println(
+                    "[TeamMemberController] getMembers - teamId: " + teamId + ", count: " + response.getItems().size());
+            response.getItems().forEach(m -> System.out
+                    .println("  - Member: " + m.getFullName() + ", userId: " + m.getUserId() + ", id: " + m.getId()));
         }
         return ResponseApi.ok(response);
     }

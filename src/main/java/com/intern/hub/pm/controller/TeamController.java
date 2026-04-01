@@ -37,14 +37,14 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("${api.prefix}/teams")
-@Tag(name = "Dự án team", description = "Các thao tác quản lý dự án của team")
+@Tag(name = "Team", description = "Các thao tác quản lý dự án của team")
 @SecurityRequirement(name = "Bearer")
 public class TeamController {
 
     private final TeamService teamService;
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách dự án team", description = "Danh sách dự án của team có phân trang và lọc.")
+    @Operation(summary = "Lấy danh sách Team", description = "Danh sách dự án của team có phân trang và lọc.")
     public ResponseApi<PaginatedData<TeamResponse>> getTeams(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String name,
@@ -70,13 +70,13 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}")
-    @Operation(summary = "Chi tiết dự án team", description = "Thông tin chi tiết dự án team")
+    @Operation(summary = "Chi tiết Team", description = "Thông tin chi tiết Team")
     public ResponseApi<TeamResponse> getTeam(@PathVariable Long teamId) {
         return ResponseApi.ok(teamService.getTeam(teamId));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Tạo dự án team", description = "Tạo dự án team")
+    @Operation(summary = "Tạo Team", description = "Tạo Team")
     @Authenticated
     public ResponseApi<TeamResponse> createTeam(
             @Valid @RequestPart("request") TeamUpsertRequest request,
@@ -88,7 +88,7 @@ public class TeamController {
     }
 
     @PutMapping(value = "/{teamId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Cập nhật team", description = "Cập nhật thông tin của dự án team ")
+    @Operation(summary = "Cập nhật team", description = "Cập nhật thông tin của Team ")
     @Authenticated
     public ResponseApi<TeamResponse> updateTeam(
             @PathVariable Long teamId,
@@ -98,14 +98,14 @@ public class TeamController {
     }
 
     @DeleteMapping("/{teamId}")
-    @Operation(summary = "Hủy dự án team", description = "Hủy dự án team.")
+    @Operation(summary = "Hủy Team", description = "Hủy Team.")
     public ResponseApi<?> deleteTeam(@PathVariable Long teamId) {
         teamService.deleteTeam(teamId);
         return ResponseApi.noContent();
     }
 
     @PostMapping("/{teamId}/complete")
-    @Operation(summary = "Nộp đán án dự án team", description = "Nộp đáp án và chuyển trạng thái của dự án sang chờ duyệt.")
+    @Operation(summary = "Nộp đán án Team", description = "Nộp đáp án và chuyển trạng thái của dự án sang chờ duyệt.")
     public ResponseApi<TeamResponse> completeTeam(
             @PathVariable Long teamId,
             @Valid @RequestBody TeamCompleteRequest request) {
@@ -113,7 +113,7 @@ public class TeamController {
     }
 
     @PostMapping("/{teamId}/approve")
-    @Operation(summary = "Duyệt team", description = "Duyệt dự án team cấp token.")
+    @Operation(summary = "Duyệt team", description = "Duyệt Team cấp token.")
     public ResponseApi<TeamResponse> approveTeam(
             @PathVariable Long teamId,
             @Valid @RequestBody ApproveRequest request) {
@@ -121,7 +121,7 @@ public class TeamController {
     }
 
     @PostMapping("/{teamId}/accept")
-    @Operation(summary = "Nhận dự án team", description = "Nhận dự án team để làm (cấp ngân sách).")
+    @Operation(summary = "Nhận Team", description = "Nhận Team để làm (cấp ngân sách).")
     public ResponseApi<TeamResponse> acceptTeam(
             @PathVariable Long teamId) {
         return ResponseApi.ok(teamService.acceptTeam(teamId));

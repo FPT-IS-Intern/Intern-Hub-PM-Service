@@ -12,7 +12,6 @@ import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
-import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.team.Task;
 import com.intern.hub.pm.model.team.Team;
 import com.intern.hub.pm.repository.ProjectRepository;
@@ -77,11 +76,9 @@ public class TaskServiceImpl implements TaskService {
                 DocumentType.CHARTER,
                 currentUserId,
                 "pm/tasks/" + savedTask.getId() + "/charter",
-                files
-        );
+                files);
         return toResponse(savedTask);
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -99,7 +96,8 @@ public class TaskServiceImpl implements TaskService {
 
     private Map<Long, String> fetchUserNames(List<Long> userIds) {
         Map<Long, String> userNameMap = new java.util.HashMap<>();
-        if (userIds == null || userIds.isEmpty()) return userNameMap;
+        if (userIds == null || userIds.isEmpty())
+            return userNameMap;
         try {
             var response = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
             if (response != null && response.data() != null) {
@@ -145,6 +143,20 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskResponse refuseTask(Long taskId) {
+        Task task = getActiveTask(taskId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(task.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao task mới có thể từ chối task");
+        }
+        if (task.getStatus() != StatusWork.NOT_STARTED) {
+            throw new IllegalArgumentException("Chỉ có thể từ chối task khi ở trạng thái Chưa bắt đầu");
+        }
+        task.setStatus(StatusWork.REJECTED);
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public TaskResponse getTask(Long taskId) {
         return toResponse(getActiveTask(taskId));
@@ -168,8 +180,7 @@ public class TaskServiceImpl implements TaskService {
                 DocumentType.CHARTER,
                 UserContext.requiredUserId(),
                 "pm/tasks/" + savedTask.getId() + "/charter",
-                files
-        );
+                files);
         return toResponse(savedTask);
     }
 
@@ -178,13 +189,17 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long taskId) {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
+        if (task.getStatus().equals(StatusWork.IN_PROGRESS)) {
+            throw new BadRequestException("Task đang thực hiện không xóa được!");
+        }
         task.setStatus(StatusWork.CANCELED);
         taskRepository.save(task);
     }
 
     @Override
     @Transactional
-    public TaskResponse submitTask(Long taskId, String deliverableDescription, String deliverableLink, List<MultipartFile> files) {
+    public TaskResponse submitTask(Long taskId, String deliverableDescription, String deliverableLink,
+            List<MultipartFile> files) {
         Task task = getActiveTask(taskId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(task.getAssigneeId())) {
@@ -197,14 +212,12 @@ public class TaskServiceImpl implements TaskService {
                 DocumentType.DELIVERABLE,
                 currentUserId,
                 "pm/tasks/" + task.getId() + "/submissions",
-                files
-        );
+                files);
         task.setDeliverableDescription(trimToNull(deliverableDescription));
         task.setDeliverableLink(trimToNull(deliverableLink));
         task.setStatus(StatusWork.PENDING_REVIEW);
         return toResponse(taskRepository.save(task));
     }
-
 
     @Override
     @Transactional
@@ -229,8 +242,8 @@ public class TaskServiceImpl implements TaskService {
         Pageable pageable = org.springframework.data.domain.PageRequest.of(
                 page,
                 size,
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
-        );
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,
+                        "createdAt"));
         Page<Task> taskPage = taskRepository.findAll(specification, pageable);
         List<Task> tasks = taskPage.getContent();
 
@@ -245,8 +258,7 @@ public class TaskServiceImpl implements TaskService {
                 .map(t -> toResponseWithNames(
                         t,
                         userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")
-                ))
+                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
                 .toList();
 
         return PaginatedData.<TaskResponse>builder()
@@ -291,20 +303,11 @@ public class TaskServiceImpl implements TaskService {
 
     private Team getActiveTeam(Long teamId) {
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy dự án team"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy Team"));
         if (team.getStatus() == StatusWork.CANCELED) {
-            throw new NotFoundException("Không tìm thấy dự án team");
+            throw new NotFoundException("Không tìm thấy Team");
         }
         return team;
-    }
-
-    private Project getActiveProject(Long projectId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
-        if (project.getStatus() == StatusWork.CANCELED) {
-            throw new NotFoundException("Project not found");
-        }
-        return project;
     }
 
     private Task getActiveTask(Long taskId) {
@@ -334,20 +337,22 @@ public class TaskServiceImpl implements TaskService {
     private TaskResponse toResponse(Task task) {
         String creatorName = "User (ID: " + task.getCreatorId() + ")";
         String assigneeName = "User (ID: " + task.getAssigneeId() + ")";
-        
+
         try {
             if (task.getCreatorId() != null) {
                 var res = hrmInternalFeignClient.getUserByIdInternal(task.getCreatorId());
-                if (res != null && res.data() != null) creatorName = res.data().fullName();
+                if (res != null && res.data() != null)
+                    creatorName = res.data().fullName();
             }
             if (task.getAssigneeId() != null) {
                 var res = hrmInternalFeignClient.getUserByIdInternal(task.getAssigneeId());
-                if (res != null && res.data() != null) assigneeName = res.data().fullName();
+                if (res != null && res.data() != null)
+                    assigneeName = res.data().fullName();
             }
         } catch (Exception e) {
             throw new InternalErrorException(e.getMessage());
         }
-        
+
         return toResponseWithNames(task, creatorName, assigneeName);
     }
 
@@ -377,8 +382,7 @@ public class TaskServiceImpl implements TaskService {
                 task.getEndDate(),
                 submissionDocuments,
                 task.getCreatedAt(),
-                task.getUpdatedAt()
-        );
+                task.getUpdatedAt());
     }
 
     private String trimToNull(String value) {
@@ -389,7 +393,7 @@ public class TaskServiceImpl implements TaskService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private String randomNumberUUI(){
+    private String randomNumberUUI() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         int randomPart = ThreadLocalRandom.current().nextInt(0, 1_000_000);
         String randomStr = String.format("%06d", randomPart).trim();

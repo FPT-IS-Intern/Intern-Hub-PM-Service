@@ -5,6 +5,7 @@ public enum StatusWork {
     IN_PROGRESS("Đang thực hiện"),
     OVERDUE("Trễ hạn"),
     NEEDS_REVISION("Cần chỉnh sửa"),
+    REJECTED("Từ chối nhận"),
     PENDING_REVIEW("Chờ duyệt"),
     COMPLETED("Hoàn thành"),
     CANCELED("Đã hủy");
