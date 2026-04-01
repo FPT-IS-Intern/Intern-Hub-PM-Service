@@ -126,4 +126,11 @@ public class TeamController {
             @PathVariable Long teamId) {
         return ResponseApi.ok(teamService.acceptTeam(teamId));
     }
+
+    @PostMapping("/{teamId}/reject")
+    @Operation(summary = "Từ chối nhận team", description = "User từ chối nhận team được giao (trạng thái sẽ chuyển sang REJECTED).")
+    public ResponseApi<TeamResponse> refuseToAccept(
+            @PathVariable Long teamId) {
+        return ResponseApi.ok(teamService.refuseTask(teamId));
+    }
 }

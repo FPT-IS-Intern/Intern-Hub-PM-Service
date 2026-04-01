@@ -28,4 +28,6 @@ public interface TeamService {
     TeamResponse approveTeam(Long teamId, ApproveRequest request);
 
     TeamResponse acceptTeam(Long teamId);
+
+    TeamResponse refuseTask(Long teamId);
 }

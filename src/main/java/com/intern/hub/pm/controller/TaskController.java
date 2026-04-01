@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,14 +24,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
-
-import com.intern.hub.pm.model.constant.StatusWork;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
 
@@ -67,10 +62,11 @@ public class TaskController {
     @PostMapping("/my-tasks/filter")
     @Operation(summary = "Lấy danh sách task của tôi", description = "Trả về danh sách task của user đang đăng nhập có phân trang và hỗ trợ filter")
     public ResponseApi<PaginatedData<TaskResponse>> getMyFilteredTasks(
+            @RequestParam(required = false) Long teamId,
             @RequestBody TaskFilterRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseApi.ok(taskService.getMyTasks(filter, page, size));
+        return ResponseApi.ok(taskService.getMyTasks(teamId, filter, page, size));
     }
 
     @GetMapping("/teams/{teamId}/tasks/statistics")
@@ -140,5 +136,4 @@ public class TaskController {
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.refuseTask(taskId));
     }
-
 }

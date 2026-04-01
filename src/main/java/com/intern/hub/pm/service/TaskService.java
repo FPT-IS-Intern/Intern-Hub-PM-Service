@@ -20,10 +20,7 @@ public interface TaskService {
             Long teamId, TaskFilterRequest filter,
             int page, int size);
 
-        PaginatedData<TaskResponse> getMyTasks(
-            TaskFilterRequest filter,
-            int page,
-            int size);
+    PaginatedData<TaskResponse> getMyTasks(Long teamId, TaskFilterRequest filter, int page, int size);
 
     TaskResponse getTask(Long taskId);
 

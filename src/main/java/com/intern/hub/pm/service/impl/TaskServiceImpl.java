@@ -90,8 +90,8 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedData<TaskResponse> getMyTasks(TaskFilterRequest filter, int page, int size) {
-        return getTasks(buildTaskSpecification(null, UserContext.requiredUserId(), filter), page, size);
+    public PaginatedData<TaskResponse> getMyTasks(Long teamId, TaskFilterRequest filter, int page, int size) {
+        return getTasks(buildTaskSpecification(teamId, UserContext.requiredUserId(), filter), page, size);
     }
 
     private Map<Long, String> fetchUserNames(List<Long> userIds) {

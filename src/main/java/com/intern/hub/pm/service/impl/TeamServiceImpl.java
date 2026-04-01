@@ -4,6 +4,7 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ApproveRequest;
+import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.model.HrmUserClientModel;
@@ -349,5 +350,19 @@ public class TeamServiceImpl implements TeamService {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         int randomPart = ThreadLocalRandom.current().nextInt(0, 1_000_000);
         return datePart + String.format("%06d", randomPart).trim();
+    }
+
+    @Override
+    public TeamResponse refuseTask(Long teamId) {
+        Team team = getActiveTeam(teamId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(team.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao leader mới có thể từ chối leader");
+        }
+        if (team.getStatus() != StatusWork.NOT_STARTED) {
+            throw new IllegalArgumentException("Chỉ có thể từ chối team khi ở trạng thái Chưa bắt đầu");
+        }
+        team.setStatus(StatusWork.REJECTED);
+        return toResponse(teamRepository.save(team));
     }
 }
