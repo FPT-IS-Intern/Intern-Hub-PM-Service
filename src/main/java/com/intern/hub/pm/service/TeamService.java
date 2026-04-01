@@ -13,6 +13,8 @@ public interface TeamService {
 
     PaginatedData<TeamResponse> getTeams(TeamFilterRequest filter, int page, int size);
 
+    PaginatedData<TeamResponse> getMyTeams(Long projectId, int page, int size);
+
     TeamStatisticsResponse getTeamStatistics(Long projectId);
 
     TeamResponse getTeam(Long teamId);

@@ -63,6 +63,15 @@ public class TeamController {
         return ResponseApi.ok(teamService.getTeams(filter, page, size));
     }
 
+    @GetMapping("/my-teams")
+    @Operation(summary = "Lấy danh sách team của tôi", description = "Trả về danh sách team mà user đang đăng nhập là thành viên hoặc leader")
+    public ResponseApi<PaginatedData<TeamResponse>> getMyTeams(
+            @RequestParam Long projectId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseApi.ok(teamService.getMyTeams(projectId, page, size));
+    }
+
     @GetMapping("/statistics")
     @Operation(summary = "Lấy thống kê team", description = "Trả về số lượng team theo từng trạng thái.")
     public ResponseApi<TeamStatisticsResponse> getTeamStatistics(@RequestParam(required = false) Long projectId) {

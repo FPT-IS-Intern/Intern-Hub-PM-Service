@@ -69,7 +69,20 @@ public class TeamServiceImpl implements TeamService {
         Page<Team> teamPage = teamRepository.findAll(spec, pageable);
 
         List<Team> teams = teamPage.getContent();
+        return toPaginatedResponse(teams, teamPage);
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<TeamResponse> getMyTeams(Long projectId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, TEAM_SORT);
+        Long userId = UserContext.requiredUserId();
+        Page<Team> teamPage = teamRepository.findByProjectIdAndMemberUserId(projectId, userId, pageable);
+        
+        return toPaginatedResponse(teamPage.getContent(), teamPage);
+    }
+
+    private PaginatedData<TeamResponse> toPaginatedResponse(List<Team> teams, Page<Team> teamPage) {
         List<Long> leadIds = teams.stream()
                 .map(Team::getAssigneeId)
                 .filter(java.util.Objects::nonNull)
