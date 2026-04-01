@@ -15,6 +15,8 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 
     long countByProjectIdAndStatusNot(Long projectId, StatusWork status);
 
+    long countByProjectIdAndStatusNotAndStatusNot(Long projectId, StatusWork s1, StatusWork s2);
+
     long countByStatusNot(StatusWork status);
 
     long countByProjectIdAndStatus(Long projectId, StatusWork status);

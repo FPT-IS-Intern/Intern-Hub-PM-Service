@@ -26,5 +26,11 @@ public interface ProjectService {
 
     ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request);
 
+    ProjectResponse approveProject(Long projectId, ApproveRequest request);
+
+    ProjectResponse refuseProject(Long projectId, ApproveRequest request);
+
     ProjectResponse acceptProject(Long projectId);
+
+    ProjectResponse rejectProject(Long projectId);
 }

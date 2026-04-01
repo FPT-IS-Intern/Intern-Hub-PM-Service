@@ -114,18 +114,32 @@ public class ProjectController {
     }
 
     @PostMapping("/{projectId}/approve")
-    @Operation(summary = "Duyệt dự án", description = "Duyệt dự án hoàn thành khi không còn team nào đang chờ duyệt.")
+    @Operation(summary = "Duyệt dự án", description = "Duyệt dự án hoàn thành khi đã được nộp và không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> approveProject(
             @PathVariable Long projectId,
             @Valid @RequestBody ApproveRequest request) {
-        return null;
-        // return ResponseApi.ok(projectService.completeProject(projectId, request));
+        return ResponseApi.ok(projectService.approveProject(projectId, request));
+    }
+
+    @PostMapping("/{projectId}/refuse")
+    @Operation(summary = "Yêu cầu làm lại dự án", description = "Từ chối và yêu cầu chỉnh sửa dự án khi đang ở trạng thái chờ duyệt.")
+    public ResponseApi<ProjectResponse> refuseProject(
+            @PathVariable Long projectId,
+            @Valid @RequestBody ApproveRequest request) {
+        return ResponseApi.ok(projectService.refuseProject(projectId, request));
     }
 
     @PostMapping("/{projectId}/accept")
     @Operation(summary = "Nhận dự án", description = "Nhận dự án để làm (cấp ngân sách).")
-    public ResponseApi<ProjectResponse> acceptTeam(
+    public ResponseApi<ProjectResponse> acceptProject(
             @PathVariable Long projectId) {
         return ResponseApi.ok(projectService.acceptProject(projectId));
+    }
+
+    @PostMapping("/{projectId}/reject")
+    @Operation(summary = "Từ chối nhận dự án", description = "Từ chối nhận dự án được giao (trạng thái sẽ chuyển sang REJECTED).")
+    public ResponseApi<ProjectResponse> rejectProject(
+            @PathVariable Long projectId) {
+        return ResponseApi.ok(projectService.rejectProject(projectId));
     }
 }

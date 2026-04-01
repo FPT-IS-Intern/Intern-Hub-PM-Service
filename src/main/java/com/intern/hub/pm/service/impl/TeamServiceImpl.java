@@ -4,12 +4,9 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ApproveRequest;
-import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
-import com.intern.hub.pm.feign.model.HrmUserClientModel;
 import com.intern.hub.pm.model.constant.StatusWork;
-import com.intern.hub.pm.model.team.Task;
 import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
@@ -261,6 +258,21 @@ public class TeamServiceImpl implements TeamService {
         }
 
         team.setStatus(StatusWork.COMPLETED);
+        team.setNote(trimToNull(request.note()));
+        return toResponse(teamRepository.save(team));
+    }
+
+    @Override
+    @Transactional
+    public TeamResponse refuseTeam(Long teamId, ApproveRequest request) {
+        Team team = getActiveTeam(teamId);
+        assertTeamOwner(team);
+
+        if (team.getStatus() != StatusWork.PENDING_REVIEW) {
+            throw new ConflictDataException("Không phải trạng thái chờ duyệt, không yêu cầu sửa được");
+        }
+
+        team.setStatus(StatusWork.NEEDS_REVISION);
         team.setNote(trimToNull(request.note()));
         return toResponse(teamRepository.save(team));
     }

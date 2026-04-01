@@ -9,6 +9,8 @@ import com.intern.hub.pm.dto.project.ProjectResponse;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
 import com.intern.hub.pm.dto.project.ProjectFilterRequest;
 import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
+import com.intern.hub.pm.dto.project.ApproveRequest;
+import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.repository.specification.ProjectSpecification;
 import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
@@ -48,6 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskRepository taskRepository;
+    private final TeamRepository teamRepository;
     private final DocumentService documentService;
 
     @Override
@@ -128,8 +131,7 @@ public class ProjectServiceImpl implements ProjectService {
                 DocumentType.CHARTER,
                 userId,
                 "pm/projects/" + savedProject.getId() + "/charter",
-                files
-        );
+                files);
         return toResponse(savedProject);
     }
 
@@ -158,8 +160,8 @@ public class ProjectServiceImpl implements ProjectService {
         Project savedProject = projectRepository.save(project);
 
         if (request.memberList() != null) {
-            // Simple replace strategy for members
-            List<ProjectMember> existingMembers = projectMemberRepository.findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
+            List<ProjectMember> existingMembers = projectMemberRepository
+                    .findAllByProjectIdAndStatusOrderByCreatedAtAsc(projectId, Status.ACTIVE);
             projectMemberRepository.deleteAll(existingMembers);
 
             List<ProjectMember> newMembers = request.memberList().stream()
@@ -179,8 +181,7 @@ public class ProjectServiceImpl implements ProjectService {
                 DocumentType.CHARTER,
                 UserContext.requiredUserId(),
                 "pm/projects/" + savedProject.getId() + "/charter",
-                files
-        );
+                files);
         return toResponse(savedProject);
     }
 
@@ -208,24 +209,54 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request) {
-//        Project project = getActiveProject(projectId);
-//        assertProjectOwner(project);
-//        boolean hasPendingReview = !taskRepository.findAllByProjectIdAndStatusNotOrderByCreatedAtDesc(projectId, StatusWork.CANCELED)
-//                .stream()
-//                .filter(task -> task.getStatus() == StatusWork.PENDING_REVIEW)
-//                .toList()
-//                .isEmpty();
-//        if (hasPendingReview) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project still has tasks pending review");
-//        }
-//
-//        project.setStatus(StatusWork.COMPLETED);
-//        project.setCompletionComment(trimToNull(request.completionComment()));
-//        return toResponse(projectRepository.save(project));
-        return null;
+        Project project = getActiveProject(projectId);
+        assertProjectOwner(project);
+
+        long incompleteTeamCount = teamRepository.countByProjectIdAndStatusNotAndStatusNot(
+                projectId,
+                StatusWork.COMPLETED,
+                StatusWork.CANCELED);
+        if (incompleteTeamCount > 0) {
+            throw new ConflictDataException("Vẫn còn team trong dự án chưa hoàn thành");
+        }
+
+        project.setStatus(StatusWork.PENDING_REVIEW);
+        project.setCompletionComment(trimToNull(request.completionComment()));
+        return toResponse(projectRepository.save(project));
     }
 
     @Override
+    @Transactional
+    public ProjectResponse approveProject(Long projectId, ApproveRequest request) {
+        Project project = getActiveProject(projectId);
+        assertProjectOwner(project);
+
+        if (project.getStatus() != StatusWork.PENDING_REVIEW) {
+            throw new ConflictDataException("Không phải trạng thái chờ duyệt, không duyệt được");
+        }
+
+        project.setStatus(StatusWork.COMPLETED);
+        project.setNote(trimToNull(request.note()));
+        return toResponse(projectRepository.save(project));
+    }
+
+    @Override
+    @Transactional
+    public ProjectResponse refuseProject(Long projectId, ApproveRequest request) {
+        Project project = getActiveProject(projectId);
+        assertProjectOwner(project);
+
+        if (project.getStatus() != StatusWork.PENDING_REVIEW) {
+            throw new ConflictDataException("Không phải trạng thái chờ duyệt, không yêu cầu sửa được");
+        }
+
+        project.setStatus(StatusWork.NEEDS_REVISION);
+        project.setNote(trimToNull(request.note()));
+        return toResponse(projectRepository.save(project));
+    }
+
+    @Override
+    @Transactional
     public ProjectResponse acceptProject(Long projectId) {
         Project project = getActiveProject(projectId);
         Long currentUserId = UserContext.requiredUserId();
@@ -233,6 +264,21 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("Chỉ người được giao mới có thể nhận dự án");
         }
         project.setStatus(StatusWork.IN_PROGRESS);
+        return toResponse(projectRepository.save(project));
+    }
+
+    @Override
+    @Transactional
+    public ProjectResponse rejectProject(Long projectId) {
+        Project project = getActiveProject(projectId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(project.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao mới có thể từ chối dự án");
+        }
+        if (project.getStatus() != StatusWork.NOT_STARTED) {
+            throw new ConflictDataException("Chỉ có thể từ chối dự án khi ở trạng thái Chưa bắt đầu");
+        }
+        project.setStatus(StatusWork.REJECTED);
         return toResponse(projectRepository.save(project));
     }
 
@@ -274,8 +320,7 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getEndDate(),
                 charterDocuments,
                 project.getCreatedAt(),
-                project.getUpdatedAt()
-        );
+                project.getUpdatedAt());
     }
 
     private String trimToNull(String value) {
@@ -286,7 +331,7 @@ public class ProjectServiceImpl implements ProjectService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private String randomNumberUUI(){
+    private String randomNumberUUI() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         int randomPart = ThreadLocalRandom.current().nextInt(0, 1_000_000);
         String randomStr = String.format("%06d", randomPart).trim();
