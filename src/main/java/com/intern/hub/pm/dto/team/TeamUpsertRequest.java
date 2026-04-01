@@ -1,6 +1,5 @@
 package com.intern.hub.pm.dto.team;
 
-import com.intern.hub.pm.dto.project.member.ProjectMemberCreateRequest;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,8 +14,7 @@ public record TeamUpsertRequest(
         @NotNull @Min(0) Long rewardToken,
         @NotNull Long assigneeId,
         @NotNull Long projectId,
-        List<ProjectMemberCreateRequest> memberList,
+        List<TeamMemberCreateRequest> memberList,
         LocalDateTime startDate,
-        LocalDateTime endDate
-) {
+        LocalDateTime endDate) {
 }

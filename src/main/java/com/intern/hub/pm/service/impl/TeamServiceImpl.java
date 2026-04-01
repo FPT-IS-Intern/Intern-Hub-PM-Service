@@ -78,7 +78,7 @@ public class TeamServiceImpl implements TeamService {
         Pageable pageable = PageRequest.of(page, size, TEAM_SORT);
         Long userId = UserContext.requiredUserId();
         Page<Team> teamPage = teamRepository.findByProjectIdAndMemberUserId(projectId, userId, pageable);
-        
+
         return toPaginatedResponse(teamPage.getContent(), teamPage);
     }
 

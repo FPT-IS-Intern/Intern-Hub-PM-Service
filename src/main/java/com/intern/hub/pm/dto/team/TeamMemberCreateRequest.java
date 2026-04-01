@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 public record TeamMemberCreateRequest(
         @NotNull
         @JsonSerialize(using = ToStringSerializer.class)
-        Long userId,
-        String role
+        Long userId
 ) {
 }
