@@ -24,6 +24,11 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     Optional<ProjectMember> findByProjectIdAndUserIdAndStatus(Long projectId, Long userId, Status status);
 
+    long countByProjectIdAndStatus(Long projectId, Status status);
+
+    @Query("SELECT pm.project.id, COUNT(pm) FROM ProjectMember pm WHERE pm.project.id IN :projectIds AND pm.status = :status GROUP BY pm.project.id")
+    List<Object[]> countMembersByProjectIds(@Param("projectIds") List<Long> projectIds, @Param("status") Status status);
+
     @Query("SELECT pm.userId FROM ProjectMember pm WHERE pm.project.id = :projectId AND pm.status = :status")
     List<Long> findUserIdsByProjectIdAndStatus(@Param("projectId") Long projectId, @Param("status") Status status);
 

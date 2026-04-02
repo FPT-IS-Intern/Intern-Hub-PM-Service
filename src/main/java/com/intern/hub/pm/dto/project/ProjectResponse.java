@@ -22,6 +22,7 @@ public record ProjectResponse(
         String deliverableDescription,
         String deliverableLink,
         String completionComment,
+        Long memberCount,
         LocalDateTime startDate,
         LocalDateTime endDate,
         List<DocumentResponse> charterDocuments,

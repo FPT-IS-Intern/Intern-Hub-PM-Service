@@ -74,11 +74,20 @@ public class ProjectServiceImpl implements ProjectService {
                 .toList();
         java.util.Map<Long, String> userNameMap = fetchUserNames(userIds);
 
+        List<Long> projectIds = projects.stream().map(Project::getId).toList();
+        java.util.Map<Long, Long> memberCountMap = projectMemberRepository.countMembersByProjectIds(projectIds, Status.ACTIVE)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
         List<ProjectResponse> items = projects.stream()
                 .map(p -> toResponseWithNames(
                         p,
                         userNameMap.getOrDefault(p.getCreatorId(), "User (ID: " + p.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(p.getAssigneeId(), "User (ID: " + p.getAssigneeId() + ")")))
+                        userNameMap.getOrDefault(p.getAssigneeId(), "User (ID: " + p.getAssigneeId() + ")"),
+                        memberCountMap.getOrDefault(p.getId(), 0L)))
                 .toList();
 
         return PaginatedData.<ProjectResponse>builder()
@@ -118,7 +127,22 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional(readOnly = true)
     public ProjectResponse getProject(Long projectId) {
-        return toResponse(getActiveProject(projectId));
+        Project project = getActiveProject(projectId);
+        long memberCount = projectMemberRepository.countByProjectIdAndStatus(projectId, Status.ACTIVE);
+        String creatorName = fetchUserName(project.getCreatorId());
+        String assigneeName = fetchUserName(project.getAssigneeId());
+        return toResponseWithNames(project, creatorName, assigneeName, memberCount);
+    }
+
+    private String fetchUserName(Long userId) {
+        if (userId == null) return null;
+        try {
+            var res = hrmInternalFeignClient.getUserByIdInternal(userId);
+            if (res != null && res.data() != null) return res.data().fullName();
+        } catch (Exception e) {
+            // ignore
+        }
+        return "User (ID: " + userId + ")";
     }
 
     @Override
@@ -337,28 +361,14 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private ProjectResponse toResponse(Project project) {
-        String creatorName = "User (ID: " + project.getCreatorId() + ")";
-        String assigneeName = "User (ID: " + project.getAssigneeId() + ")";
+        long memberCount = projectMemberRepository.countByProjectIdAndStatus(project.getId(), Status.ACTIVE);
+        String creatorName = fetchUserName(project.getCreatorId());
+        String assigneeName = fetchUserName(project.getAssigneeId());
 
-        try {
-            if (project.getCreatorId() != null) {
-                var res = hrmInternalFeignClient.getUserByIdInternal(project.getCreatorId());
-                if (res != null && res.data() != null)
-                    creatorName = res.data().fullName();
-            }
-            if (project.getAssigneeId() != null) {
-                var res = hrmInternalFeignClient.getUserByIdInternal(project.getAssigneeId());
-                if (res != null && res.data() != null)
-                    assigneeName = res.data().fullName();
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-
-        return toResponseWithNames(project, creatorName, assigneeName);
+        return toResponseWithNames(project, creatorName, assigneeName, memberCount);
     }
 
-    private ProjectResponse toResponseWithNames(Project project, String creatorName, String assigneeName) {
+    private ProjectResponse toResponseWithNames(Project project, String creatorName, String assigneeName, Long memberCount) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 project.getId(), DocumentScope.PROJECT, DocumentType.CHARTER);
 
@@ -378,6 +388,7 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getDeliverableDescription(),
                 project.getDeliverableLink(),
                 project.getCompletionComment(),
+                memberCount,
                 project.getStartDate(),
                 project.getEndDate(),
                 charterDocuments,
