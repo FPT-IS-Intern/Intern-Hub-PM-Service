@@ -233,7 +233,10 @@ public class TeamServiceImpl implements TeamService {
     @Transactional
     public TeamResponse completeTeam(Long teamId, TeamCompleteRequest request) {
         Team team = getActiveTeam(teamId);
-        assertTeamOwner(team);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(team.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao leader mới có thể nộp đáp án");
+        }
 
         long incompleteTaskCount = taskRepository.countByTeamIdAndStatusNotAndStatusNot(
                 teamId,
@@ -283,7 +286,7 @@ public class TeamServiceImpl implements TeamService {
         Team team = getActiveTeam(teamId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(team.getAssigneeId())) {
-            throw new ForbiddenException("Chỉ người được giao mới có thể nhận dự án");
+            throw new ForbiddenException("Chỉ người được giao mới có thể nhận team");
         }
         team.setStatus(StatusWork.IN_PROGRESS);
         return toResponse(teamRepository.save(team));
@@ -306,7 +309,7 @@ public class TeamServiceImpl implements TeamService {
     private void assertTeamOwner(Team team) {
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(team.getCreatorId())) {
-            throw new ForbiddenException("Bạn không phải là leader team này!");
+            throw new ForbiddenException("Bạn không phải là người người tạo team này!");
         }
     }
 
@@ -395,7 +398,7 @@ public class TeamServiceImpl implements TeamService {
         Team team = getActiveTeam(teamId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(team.getAssigneeId())) {
-            throw new ForbiddenException("Chỉ người được giao leader mới có thể từ chối leader");
+            throw new ForbiddenException("Chỉ người được giao leader mới có thể từ chối");
         }
         if (team.getStatus() != StatusWork.NOT_STARTED) {
             throw new IllegalArgumentException("Chỉ có thể từ chối team khi ở trạng thái Chưa bắt đầu");
