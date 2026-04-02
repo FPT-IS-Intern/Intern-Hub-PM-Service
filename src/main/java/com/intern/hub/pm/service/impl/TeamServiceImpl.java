@@ -189,8 +189,8 @@ public class TeamServiceImpl implements TeamService {
         assertTeamOwner(team);
         validateDateRange(request.startDate(), request.endDate());
 
-        if (team.getStatus() != StatusWork.NOT_STARTED) {
-            throw new ConflictDataException("Chỉ được sửa khi Team chưa bắt đầu");
+        if (team.getStatus() != StatusWork.NOT_STARTED && team.getStatus() != StatusWork.REJECTED) {
+            throw new ConflictDataException("Chỉ có thể thu hồi/hủy team khi chưa bắt đầu hoặc bị từ chối");
         }
 
         team.setName(request.name().trim());
@@ -221,8 +221,8 @@ public class TeamServiceImpl implements TeamService {
         Team team = getActiveTeam(teamId);
         assertTeamOwner(team);
 
-        if (team.getStatus() != StatusWork.NOT_STARTED) {
-            throw new ConflictDataException("Chỉ đóng dự án khi dự án chưa bắt đầu");
+        if (team.getStatus() != StatusWork.NOT_STARTED && team.getStatus() != StatusWork.REJECTED) {
+            throw new ConflictDataException("Chỉ có thể thu hồi/hủy team khi chưa bắt đầu hoặc bị từ chối");
         }
 
         team.setStatus(StatusWork.CANCELED);

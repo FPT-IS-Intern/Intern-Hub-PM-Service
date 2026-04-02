@@ -189,8 +189,8 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long taskId) {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
-        if (task.getStatus().equals(StatusWork.IN_PROGRESS)) {
-            throw new BadRequestException("Task đang thực hiện không xóa được!");
+        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED) {
+            throw new BadRequestException("Chỉ có thể thu hồi/hủy task khi chưa bắt đầu hoặc bị từ chối");
         }
         task.setStatus(StatusWork.CANCELED);
         taskRepository.save(task);

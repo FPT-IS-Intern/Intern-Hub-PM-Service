@@ -242,8 +242,8 @@ public class ProjectServiceImpl implements ProjectService {
     public void deleteProject(Long projectId) {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
-        if (project.getStatus() != StatusWork.NOT_STARTED) {
-            throw new ConflictDataException("Chỉ đóng được dự án khi, dự án chưa bắt đầu");
+        if (project.getStatus() != StatusWork.NOT_STARTED && project.getStatus() != StatusWork.REJECTED) {
+            throw new ConflictDataException("Chỉ có thể thu hồi/hủy dự án khi chưa bắt đầu hoặc bị từ chối");
         }
         project.setStatus(StatusWork.CANCELED);
         projectRepository.save(project);
