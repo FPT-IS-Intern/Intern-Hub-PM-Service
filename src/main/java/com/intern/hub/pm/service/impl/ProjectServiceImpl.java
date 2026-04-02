@@ -75,12 +75,12 @@ public class ProjectServiceImpl implements ProjectService {
         java.util.Map<Long, String> userNameMap = fetchUserNames(userIds);
 
         List<Long> projectIds = projects.stream().map(Project::getId).toList();
-        java.util.Map<Long, Long> memberCountMap = projectMemberRepository.countMembersByProjectIds(projectIds, Status.ACTIVE)
+        java.util.Map<Long, Long> memberCountMap = projectMemberRepository
+                .countMembersByProjectIds(projectIds, Status.ACTIVE)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
+                        row -> (Long) row[1]));
 
         List<ProjectResponse> items = projects.stream()
                 .map(p -> toResponseWithNames(
@@ -135,10 +135,12 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private String fetchUserName(Long userId) {
-        if (userId == null) return null;
+        if (userId == null)
+            return null;
         try {
             var res = hrmInternalFeignClient.getUserByIdInternal(userId);
-            if (res != null && res.data() != null) return res.data().fullName();
+            if (res != null && res.data() != null)
+                return res.data().fullName();
         } catch (Exception e) {
             // ignore
         }
@@ -262,10 +264,9 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
 
-        long incompleteTeamCount = teamRepository.countByProjectIdAndStatusNotAndStatusNot(
+        long incompleteTeamCount = teamRepository.countByProjectIdAndStatusNotIn(
                 projectId,
-                StatusWork.COMPLETED,
-                StatusWork.CANCELED);
+                List.of(StatusWork.COMPLETED, StatusWork.CANCELED, StatusWork.REJECTED));
         if (incompleteTeamCount > 0) {
             throw new ConflictDataException("Vẫn còn team trong dự án chưa hoàn thành");
         }
@@ -368,7 +369,8 @@ public class ProjectServiceImpl implements ProjectService {
         return toResponseWithNames(project, creatorName, assigneeName, memberCount);
     }
 
-    private ProjectResponse toResponseWithNames(Project project, String creatorName, String assigneeName, Long memberCount) {
+    private ProjectResponse toResponseWithNames(Project project, String creatorName, String assigneeName,
+            Long memberCount) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 project.getId(), DocumentScope.PROJECT, DocumentType.CHARTER);
 

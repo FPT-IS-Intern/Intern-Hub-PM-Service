@@ -238,10 +238,9 @@ public class TeamServiceImpl implements TeamService {
             throw new ForbiddenException("Chỉ người được giao leader mới có thể nộp đáp án");
         }
 
-        long incompleteTaskCount = taskRepository.countByTeamIdAndStatusNotAndStatusNot(
+        long incompleteTaskCount = taskRepository.countByTeamIdAndStatusNotIn(
                 teamId,
-                StatusWork.COMPLETED,
-                StatusWork.CANCELED);
+                java.util.List.of(StatusWork.COMPLETED, StatusWork.CANCELED, StatusWork.REJECTED));
         if (incompleteTaskCount > 0) {
             throw new ConflictDataException("Vẫn còn task trong team chưa được duyệt hoàn thành");
         }
