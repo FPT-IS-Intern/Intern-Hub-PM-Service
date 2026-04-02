@@ -22,6 +22,7 @@ import com.intern.hub.pm.repository.ProjectMemberRepository;
 import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.ProjectService;
+import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
 import com.intern.hub.library.common.exception.ForbiddenException;
@@ -50,6 +51,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final TeamRepository teamRepository;
     private final DocumentService documentService;
+    private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,9 +65,20 @@ public class ProjectServiceImpl implements ProjectService {
         Pageable pageable = PageRequest.of(page, size, PROJECT_SORT);
         Specification<Project> spec = ProjectSpecification.filter(filter);
         Page<Project> projectPage = projectRepository.findAll(spec, pageable);
+        List<Project> projects = projectPage.getContent();
 
-        List<ProjectResponse> items = projectPage.getContent().stream()
-                .map(this::toResponse)
+        List<Long> userIds = projects.stream()
+                .flatMap(p -> java.util.stream.Stream.of(p.getCreatorId(), p.getAssigneeId()))
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        java.util.Map<Long, String> userNameMap = fetchUserNames(userIds);
+
+        List<ProjectResponse> items = projects.stream()
+                .map(p -> toResponseWithNames(
+                        p,
+                        userNameMap.getOrDefault(p.getCreatorId(), "User (ID: " + p.getCreatorId() + ")"),
+                        userNameMap.getOrDefault(p.getAssigneeId(), "User (ID: " + p.getAssigneeId() + ")")))
                 .toList();
 
         return PaginatedData.<ProjectResponse>builder()
@@ -73,6 +86,21 @@ public class ProjectServiceImpl implements ProjectService {
                 .totalItems(projectPage.getTotalElements())
                 .totalPages(projectPage.getTotalPages())
                 .build();
+    }
+
+    private java.util.Map<Long, String> fetchUserNames(List<Long> userIds) {
+        java.util.Map<Long, String> userNameMap = new java.util.HashMap<>();
+        if (userIds == null || userIds.isEmpty())
+            return userNameMap;
+        try {
+            var response = hrmInternalFeignClient.getUsersByIdsInternal(userIds);
+            if (response != null && response.data() != null) {
+                response.data().forEach(u -> userNameMap.put(Long.valueOf(u.userId()), u.fullName()));
+            }
+        } catch (Exception e) {
+            // Log error if needed
+        }
+        return userNameMap;
     }
 
     @Override
@@ -309,6 +337,28 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private ProjectResponse toResponse(Project project) {
+        String creatorName = "User (ID: " + project.getCreatorId() + ")";
+        String assigneeName = "User (ID: " + project.getAssigneeId() + ")";
+
+        try {
+            if (project.getCreatorId() != null) {
+                var res = hrmInternalFeignClient.getUserByIdInternal(project.getCreatorId());
+                if (res != null && res.data() != null)
+                    creatorName = res.data().fullName();
+            }
+            if (project.getAssigneeId() != null) {
+                var res = hrmInternalFeignClient.getUserByIdInternal(project.getAssigneeId());
+                if (res != null && res.data() != null)
+                    assigneeName = res.data().fullName();
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+
+        return toResponseWithNames(project, creatorName, assigneeName);
+    }
+
+    private ProjectResponse toResponseWithNames(Project project, String creatorName, String assigneeName) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 project.getId(), DocumentScope.PROJECT, DocumentType.CHARTER);
 
@@ -323,6 +373,8 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getRewardToken(),
                 project.getCreatorId() != null ? String.valueOf(project.getCreatorId()) : null,
                 project.getAssigneeId() != null ? String.valueOf(project.getAssigneeId()) : null,
+                creatorName,
+                assigneeName,
                 project.getDeliverableDescription(),
                 project.getDeliverableLink(),
                 project.getCompletionComment(),

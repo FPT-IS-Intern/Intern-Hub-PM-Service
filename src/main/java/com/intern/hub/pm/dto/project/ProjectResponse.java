@@ -17,6 +17,8 @@ public record ProjectResponse(
         Long rewardToken,
         String creatorId,
         String assigneeId,
+        String creatorName,
+        String assigneeName,
         String deliverableDescription,
         String deliverableLink,
         String completionComment,
