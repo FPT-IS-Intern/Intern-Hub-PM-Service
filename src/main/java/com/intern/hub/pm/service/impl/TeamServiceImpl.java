@@ -231,7 +231,7 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     @Transactional
-    public TeamResponse completeTeam(Long teamId, TeamCompleteRequest request) {
+    public TeamResponse completeTeam(Long teamId, TeamCompleteRequest request, List<MultipartFile> files) {
         Team team = getActiveTeam(teamId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(team.getAssigneeId())) {
@@ -248,7 +248,19 @@ public class TeamServiceImpl implements TeamService {
 
         team.setStatus(StatusWork.PENDING_REVIEW);
         team.setCompletionComment(trimToNull(request.completionComment()));
-        return toResponse(teamRepository.save(team));
+        team.setDeliverableDescription(trimToNull(request.deliverableDescription()));
+        team.setDeliverableLink(trimToNull(request.deliverableLink()));
+        Team savedTeam = teamRepository.save(team);
+
+        documentService.replaceDocuments(
+                savedTeam.getId(),
+                DocumentScope.TEAM,
+                DocumentType.DELIVERABLE,
+                currentUserId,
+                "pm/teams/" + savedTeam.getId() + "/submission",
+                files);
+
+        return toResponse(savedTeam);
     }
 
     @Override

@@ -20,7 +20,6 @@ import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.project.ProjectMember;
 import com.intern.hub.pm.repository.ProjectMemberRepository;
 import com.intern.hub.pm.repository.ProjectRepository;
-import com.intern.hub.pm.repository.TaskRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.utils.UserContext;
@@ -49,7 +48,6 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
-    private final TaskRepository taskRepository;
     private final TeamRepository teamRepository;
     private final DocumentService documentService;
 
@@ -208,7 +206,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request) {
+    public ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request, List<MultipartFile> files) {
         Project project = getActiveProject(projectId);
         assertProjectOwner(project);
 
@@ -222,7 +220,19 @@ public class ProjectServiceImpl implements ProjectService {
 
         project.setStatus(StatusWork.PENDING_REVIEW);
         project.setCompletionComment(trimToNull(request.completionComment()));
-        return toResponse(projectRepository.save(project));
+        project.setDeliverableDescription(trimToNull(request.deliverableDescription()));
+        project.setDeliverableLink(trimToNull(request.deliverableLink()));
+        Project savedProject = projectRepository.save(project);
+
+        documentService.replaceDocuments(
+                savedProject.getId(),
+                DocumentScope.PROJECT,
+                DocumentType.DELIVERABLE,
+                UserContext.requiredUserId(),
+                "pm/projects/" + savedProject.getId() + "/submission",
+                files);
+
+        return toResponse(savedProject);
     }
 
     @Override

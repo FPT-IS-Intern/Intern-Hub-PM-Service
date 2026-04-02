@@ -105,12 +105,13 @@ public class ProjectController {
         return ResponseApi.noContent();
     }
 
-    @PostMapping("/{projectId}/complete")
+    @PostMapping(value = "/{projectId}/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Nộp dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> completeProject(
             @PathVariable Long projectId,
-            @Valid @RequestBody ProjectCompleteRequest request) {
-        return ResponseApi.ok(projectService.completeProject(projectId, request));
+            @Valid @RequestPart("request") ProjectCompleteRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        return ResponseApi.ok(projectService.completeProject(projectId, request, files));
     }
 
     @PostMapping("/{projectId}/approve")

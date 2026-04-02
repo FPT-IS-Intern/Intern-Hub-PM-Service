@@ -1,6 +1,8 @@
 package com.intern.hub.pm.dto.project;
 
 public record ProjectCompleteRequest(
-        String completionComment
+        String completionComment,
+        String deliverableDescription,
+        String deliverableLink
 ) {
 }

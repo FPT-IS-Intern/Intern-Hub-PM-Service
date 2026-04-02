@@ -25,7 +25,7 @@ public interface TeamService {
 
     void deleteTeam(Long teamId);
 
-    TeamResponse completeTeam(Long teamId, TeamCompleteRequest request);
+    TeamResponse completeTeam(Long teamId, TeamCompleteRequest request, List<MultipartFile> files);
 
     TeamResponse approveTeam(Long teamId, ApproveRequest request);
 

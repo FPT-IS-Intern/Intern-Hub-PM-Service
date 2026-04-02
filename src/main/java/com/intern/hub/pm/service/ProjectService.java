@@ -24,7 +24,7 @@ public interface ProjectService {
 
     ProjectResponse extendProject(Long projectId, ProjectExtendRequest request);
 
-    ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request);
+    ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request, List<MultipartFile> files);
 
     ProjectResponse approveProject(Long projectId, ApproveRequest request);
 

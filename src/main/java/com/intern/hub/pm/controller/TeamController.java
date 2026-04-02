@@ -113,12 +113,13 @@ public class TeamController {
         return ResponseApi.noContent();
     }
 
-    @PostMapping("/{teamId}/complete")
+    @PostMapping(value = "/{teamId}/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Nộp đán án Team", description = "Nộp đáp án và chuyển trạng thái của dự án sang chờ duyệt.")
     public ResponseApi<TeamResponse> completeTeam(
             @PathVariable Long teamId,
-            @Valid @RequestBody TeamCompleteRequest request) {
-        return ResponseApi.ok(teamService.completeTeam(teamId, request));
+            @Valid @RequestPart("request") TeamCompleteRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        return ResponseApi.ok(teamService.completeTeam(teamId, request, files));
     }
 
     @PostMapping("/{teamId}/approve")
