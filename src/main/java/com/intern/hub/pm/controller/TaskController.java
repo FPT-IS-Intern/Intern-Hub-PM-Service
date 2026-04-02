@@ -102,7 +102,7 @@ public class TaskController {
     public ResponseApi<TaskResponse> submitTask(
             @PathVariable Long taskId,
             @RequestPart(value = "request", required = false) TaskSubmitRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+            @RequestPart(value = "files") List<MultipartFile> files) {
         String desc = request != null ? request.deliverableDescription() : null;
         String link = request != null ? request.deliverableLink() : null;
         return ResponseApi.ok(taskService.submitTask(taskId, desc, link, files));

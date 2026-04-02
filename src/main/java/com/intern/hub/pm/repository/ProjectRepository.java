@@ -13,9 +13,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpecificationExecutor<Project> {
 
-    List<Project> findAllByStatusNot(StatusWork status, Sort sort);
-    Page<Project> findAllByStatusNot(StatusWork status, Pageable pageable);
-
     long countByStatusNot(StatusWork status);
     long countByStatus(StatusWork status);
 }

@@ -117,8 +117,8 @@ public class TeamController {
     @Operation(summary = "Nộp đán án Team", description = "Nộp đáp án và chuyển trạng thái của dự án sang chờ duyệt.")
     public ResponseApi<TeamResponse> completeTeam(
             @PathVariable Long teamId,
-            @Valid @RequestPart("request") TeamCompleteRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+            @Valid @RequestPart(value = "request", required = false) TeamCompleteRequest request,
+            @RequestPart(value = "files") List<MultipartFile> files) {
         return ResponseApi.ok(teamService.completeTeam(teamId, request, files));
     }
 

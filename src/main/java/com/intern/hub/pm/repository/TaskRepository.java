@@ -13,19 +13,11 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task> {
 
-    Page<Task> findAllByProjectIdAndStatusNot(Long projectId, StatusWork status, Pageable pageable);
-
-    Page<Task> findAllByAssigneeIdAndStatusNot(Long assigneeId, StatusWork status, Pageable pageable);
-
-    long countByTeamId(Long teamId);
-
     long countByTeamIdAndStatus(Long teamId, StatusWork status);
 
     long countByTeamIdAndStatusNot(Long teamId, StatusWork status);
 
     long countByTeamIdAndStatusNotIn(Long teamId, List<StatusWork> statuses);
-
-    long countByTeamIdAndAssigneeIdAndStatusNot(Long teamId, Long assigneeId, StatusWork status);
 
     @Query("SELECT t.assigneeId, COUNT(t) FROM Task t WHERE t.team.id = :teamId AND t.assigneeId IN :userIds AND t.status <> :status GROUP BY t.assigneeId")
     List<Object[]> countTasksByTeamIdAndAssigneeIds(@Param("teamId") Long teamId, @Param("userIds") List<Long> userIds, @Param("status") StatusWork status);

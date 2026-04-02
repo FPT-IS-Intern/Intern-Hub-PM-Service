@@ -109,8 +109,8 @@ public class ProjectController {
     @Operation(summary = "Nộp dự án", description = "Nộp dấu dự án hoàn thành khi không còn team nào đang chờ duyệt.")
     public ResponseApi<ProjectResponse> completeProject(
             @PathVariable Long projectId,
-            @Valid @RequestPart("request") ProjectCompleteRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+            @Valid @RequestPart(value = "request", required = false) ProjectCompleteRequest request,
+            @RequestPart(value = "files") List<MultipartFile> files) {
         return ResponseApi.ok(projectService.completeProject(projectId, request, files));
     }
 

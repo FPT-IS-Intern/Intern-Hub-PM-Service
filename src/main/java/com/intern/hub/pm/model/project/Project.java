@@ -120,7 +120,4 @@ public class Project extends AuditEntity {
     @OneToMany(mappedBy = "project")
     List<Team> projectTeams;
 
-    @OneToMany(mappedBy = "project")
-    List<Task> tasks;
-
 }

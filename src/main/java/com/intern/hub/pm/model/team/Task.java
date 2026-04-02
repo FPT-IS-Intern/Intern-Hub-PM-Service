@@ -113,9 +113,4 @@ public class Task extends AuditEntity {
     @ManyToOne
     @JoinColumn(name = "team_id")
     Team team;
-
-    @ManyToOne
-    @JoinColumn(name = "project_id")
-    Project project;
-
 }
