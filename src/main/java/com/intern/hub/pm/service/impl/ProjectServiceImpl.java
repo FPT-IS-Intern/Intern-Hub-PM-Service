@@ -262,7 +262,10 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse completeProject(Long projectId, ProjectCompleteRequest request, List<MultipartFile> files) {
         Project project = getActiveProject(projectId);
-        assertProjectOwner(project);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(project.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao mới có thể nộp đáp án dự án này!");
+        }
 
         long incompleteTeamCount = teamRepository.countByProjectIdAndStatusNotIn(
                 projectId,
