@@ -2,6 +2,7 @@ package com.intern.hub.pm.service.impl;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
+import com.intern.hub.library.common.exception.BadRequestException;
 import com.intern.hub.library.common.exception.ConflictDataException;
 import com.intern.hub.library.common.exception.NotFoundException;
 import com.intern.hub.pm.dto.team.TeamMemberCreateRequest;
@@ -155,6 +156,17 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     public void deleteMember(Long memberId) {
         TeamMember member = teamMemberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy thành viên team"));
+
+        if (member.getTeam().getStatus() != StatusWork.CANCELED) {
+            long taskCount = taskRepository.countByTeamIdAndAssigneeIdAndStatusNot(
+                    member.getTeam().getId(),
+                    member.getUserId(),
+                    StatusWork.CANCELED);
+            if (taskCount > 0) {
+                throw new BadRequestException("Không thể xóa thành viên đã được phân công công việc trong team");
+            }
+        }
+
         member.setStatus(Status.DELETED);
         teamMemberRepository.save(member);
     }

@@ -22,4 +22,9 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @Query("SELECT t.assigneeId, COUNT(t) FROM Task t WHERE t.team.id = :teamId AND t.assigneeId IN :userIds AND t.status <> :status GROUP BY t.assigneeId")
     List<Object[]> countTasksByTeamIdAndAssigneeIds(@Param("teamId") Long teamId, @Param("userIds") List<Long> userIds, @Param("status") StatusWork status);
 
+    long countByTeamIdAndAssigneeIdAndStatusNot(Long teamId, Long assigneeId, StatusWork status);
+
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.team.project.id = :projectId AND t.assigneeId = :assigneeId AND t.status <> :status")
+    long countByProjectIdAndAssigneeIdAndStatusNot(@Param("projectId") Long projectId, @Param("assigneeId") Long assigneeId, @Param("status") StatusWork status);
+
 }

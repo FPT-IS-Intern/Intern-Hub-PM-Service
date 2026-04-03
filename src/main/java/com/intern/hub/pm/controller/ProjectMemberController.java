@@ -46,8 +46,9 @@ public class ProjectMemberController {
 
     @PutMapping("/users/{memberId}")
     @Operation(summary = "Cập nhật thành viên dự án", description = "Cập nhật vai trò của thành viên trong dự án.")
-    public ResponseApi<ProjectMemberResponse> updateMember(@PathVariable Long memberId,
-                                                           @Valid @RequestBody ProjectMemberUpdateRequest request) {
+    public ResponseApi<ProjectMemberResponse> updateMember(
+            @PathVariable Long memberId,
+            @Valid @RequestBody ProjectMemberUpdateRequest request) {
         return ResponseApi.ok(projectMemberService.updateMember(memberId, request));
     }
 

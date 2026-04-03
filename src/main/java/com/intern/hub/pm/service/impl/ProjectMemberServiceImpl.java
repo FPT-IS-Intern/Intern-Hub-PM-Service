@@ -10,9 +10,7 @@ import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.project.Project;
 import com.intern.hub.pm.model.project.ProjectMember;
-import com.intern.hub.pm.repository.ProjectMemberRepository;
-import com.intern.hub.pm.repository.ProjectRepository;
-import com.intern.hub.pm.repository.TeamRepository;
+import com.intern.hub.pm.repository.*;
 import com.intern.hub.pm.service.ProjectMemberService;
 import com.intern.hub.pm.utils.UserContext;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
@@ -42,6 +40,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final TaskRepository taskRepository;
     private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override
@@ -164,6 +164,38 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     public void deleteMember(Long memberId) {
         ProjectMember member = getActiveMember(memberId);
         assertProjectOwner(member.getProject());
+
+        Project project = member.getProject();
+        Long userId = member.getUserId();
+        Long projectId = project.getId();
+
+        if (project.getStatus() != StatusWork.CANCELED) {
+            long leaderCount = teamRepository.countByAssigneeIdAndProjectIdAndStatusNot(
+                    userId,
+                    projectId,
+                    StatusWork.CANCELED);
+            if (leaderCount > 0) {
+                throw new BadRequestException("Thành viên đang là trưởng nhóm trong dự án, không thể xóa");
+            }
+
+            long teamMemberCount = teamMemberRepository.countActiveTeamsByUserId(
+                    userId,
+                    Status.ACTIVE,
+                    StatusWork.CANCELED,
+                    projectId);
+            if (teamMemberCount > 0) {
+                throw new BadRequestException("Thành viên vẫn đang tham gia vào nhóm trong dự án, vui lòng xóa khỏi nhóm trước khi xóa khỏi dự án");
+            }
+
+            long taskCount = taskRepository.countByProjectIdAndAssigneeIdAndStatusNot(
+                    projectId,
+                    userId,
+                    StatusWork.CANCELED);
+            if (taskCount > 0) {
+                throw new BadRequestException("Không thể xóa thành viên đã được phân công công việc trong dự án");
+            }
+        }
+
         member.setStatus(Status.DELETED);
         projectMemberRepository.save(member);
     }

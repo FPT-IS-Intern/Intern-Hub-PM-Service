@@ -28,4 +28,5 @@ public class InternalUserController {
     public ResponseApi<HrmUserClientModel> getUserByEmail(@RequestParam("email") String email) {
         return hrmInternalFeignClient.getUserByEmailInternal(email);
     }
+
 }
