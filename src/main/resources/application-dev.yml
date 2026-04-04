@@ -73,6 +73,9 @@ services:
   hrm:
     url: http://internhub-v2-hrmservice-be-loriwy:8080
 
+  wl:
+    url: http://internhub-v2-wl-service-ppfa6f:8080
+
 aws:
   s3:
     paths:

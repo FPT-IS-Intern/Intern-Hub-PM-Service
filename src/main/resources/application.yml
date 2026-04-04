@@ -73,6 +73,9 @@ services:
 
   hrm:
     url: ${HRM_SERVICE_URL:http://localhost:8081}
+
+  wl:
+    url: ${WL_SERVICE_URL:http://localhost:9000}
     
 aws:
   s3:
