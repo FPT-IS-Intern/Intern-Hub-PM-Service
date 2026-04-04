@@ -32,7 +32,7 @@ public class TeamMemberController {
     }
 
     @GetMapping("/{teamId}/users")
-    @Operation(summary = "Lấy danh sách hoặc tìm kiếm thành viên trong team")
+    @Operation(summary = "Lấy danh sách và tìm kiếm thành viên trong team")
     public ResponseApi<PaginatedData<TeamMemberResponse>> getMembers(
             @PathVariable Long teamId,
             @RequestParam(required = false) String keyword,
@@ -40,8 +40,6 @@ public class TeamMemberController {
             @RequestParam(defaultValue = "10") int size) {
         PaginatedData<TeamMemberResponse> response = teamMemberService.getMembers(teamId, keyword, page, size);
         if (response != null && response.getItems() != null) {
-            System.out.println(
-                    "[TeamMemberController] getMembers - teamId: " + teamId + ", count: " + response.getItems().size());
             response.getItems().forEach(m -> System.out
                     .println("  - Member: " + m.getFullName() + ", userId: " + m.getUserId() + ", id: " + m.getId()));
         }
