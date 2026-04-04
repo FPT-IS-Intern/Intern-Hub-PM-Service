@@ -131,8 +131,10 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                         member,
                         teamCountByUserId.getOrDefault(member.getUserId(), 0L),
                         userDetailMap.get(member.getUserId())))
-                .filter(res -> (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
-                        || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw)))
+                .filter(res -> (res.getFullName() != null
+                        && res.getFullName().toLowerCase().contains(kw))
+                        || (res.getEmail() != null
+                        && res.getEmail().toLowerCase().contains(kw)))
                 .collect(Collectors.toList());
 
         int start = page * size;
@@ -175,24 +177,20 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                     projectId,
                     StatusWork.CANCELED);
             if (leaderCount > 0) {
-                throw new BadRequestException("Thành viên đang là trưởng nhóm trong dự án, không thể xóa");
+                throw new BadRequestException(
+                        "Thành viên đang là trưởng nhóm của một nhóm trong dự án, không thể xóa");
             }
 
+            // Kiểm tra nếu thành viên đang tham gia vào bất kỳ nhóm (Team Member) nào trong
+            // dự án
             long teamMemberCount = teamMemberRepository.countActiveTeamsByUserId(
                     userId,
                     Status.ACTIVE,
                     StatusWork.CANCELED,
                     projectId);
             if (teamMemberCount > 0) {
-                throw new BadRequestException("Thành viên vẫn đang tham gia vào nhóm trong dự án, vui lòng xóa khỏi nhóm trước khi xóa khỏi dự án");
-            }
-
-            long taskCount = taskRepository.countByProjectIdAndAssigneeIdAndStatusNot(
-                    projectId,
-                    userId,
-                    StatusWork.CANCELED);
-            if (taskCount > 0) {
-                throw new BadRequestException("Không thể xóa thành viên đã được phân công công việc trong dự án");
+                throw new BadRequestException(
+                        "Thành viên vẫn đang tham gia vào nhóm trong dự án, vui lòng xóa khỏi nhóm trước khi xóa khỏi dự án");
             }
         }
 
