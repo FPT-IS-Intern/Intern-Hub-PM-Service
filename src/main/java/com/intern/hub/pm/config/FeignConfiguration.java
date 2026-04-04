@@ -1,6 +1,7 @@
 package com.intern.hub.pm.config;
 
 import feign.RequestInterceptor;
+import feign.codec.ErrorDecoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
@@ -25,5 +26,10 @@ public class FeignConfiguration {
                 requestTemplate.header("X-Internal-Secret", normalizedSecret);
             }
         };
+    }
+
+    @Bean
+    public ErrorDecoder errorDecoder() {
+        return new CustomFeignErrorDecoder();
     }
 }
