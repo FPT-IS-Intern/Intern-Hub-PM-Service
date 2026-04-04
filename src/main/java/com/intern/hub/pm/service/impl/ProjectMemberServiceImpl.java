@@ -41,7 +41,6 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private final ProjectMemberRepository projectMemberRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
-    private final TaskRepository taskRepository;
     private final HrmInternalFeignClient hrmInternalFeignClient;
 
     @Override

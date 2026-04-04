@@ -49,6 +49,8 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     public List<TeamMemberResponse> addMembers(Long teamId, List<TeamMemberCreateRequest> requests) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy team"));
+        
+        assertTeamManagementPermission(team);
 
         Set<Long> existingMemberIds = teamMemberRepository.findAllByTeamId(teamId).stream()
                 .filter(m -> m.getStatus() == Status.ACTIVE)
@@ -156,6 +158,8 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     public void deleteMember(Long memberId) {
         TeamMember member = teamMemberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy thành viên team"));
+        
+        assertTeamManagementPermission(member.getTeam());
 
         if (member.getTeam().getStatus() != StatusWork.CANCELED) {
             long taskCount = taskRepository.countByTeamIdAndAssigneeIdAndStatusNot(
@@ -204,6 +208,19 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         }
         return hrmResponse.data().stream()
                 .collect(Collectors.toMap(u -> Long.valueOf(u.userId()), user -> user));
+    }
+
+    private void assertTeamManagementPermission(Team team) {
+        Long currentUserId = com.intern.hub.pm.utils.UserContext.requiredUserId();
+        Long teamLeaderId = team.getAssigneeId();
+        Long teamCreatorId = team.getCreatorId();
+        Long projectCreatorId = team.getProject().getCreatorId();
+
+        if (!currentUserId.equals(teamLeaderId) &&
+                !currentUserId.equals(teamCreatorId) &&
+                !currentUserId.equals(projectCreatorId)) {
+            throw new BadRequestException("Bạn không có quyền quản lý thành viên trong nhóm này!");
+        }
     }
 
     private Map<Long, Long> getTaskCountMap(Long teamId, List<Long> userIds) {
