@@ -9,6 +9,8 @@ import com.intern.hub.pm.dto.project.ProjectFilterRequest;
 import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
 import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.service.ProjectService;
+import com.intern.hub.pm.feign.WalletInternalFeignClient;
+import com.intern.hub.pm.feign.model.WalletTokenRequest;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
@@ -33,6 +35,7 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigInteger;
 import java.util.List;
 
 @RestController
@@ -42,6 +45,7 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final WalletInternalFeignClient walletInternalFeignClient;
 
     @GetMapping
     @Operation(summary = "Lấy danh sách dự án", description = "Trả về danh sách dự án có phân trang và lọc theo tiêu chí.")
@@ -84,7 +88,15 @@ public class ProjectController {
                 .orElseThrow(() -> new ForbiddenException(
                         "Không tìm thấy thông tin xác thực. Vui lòng kiểm tra lại token hoặc các header (X-UserId, X-Authenticated)."));
         Long userId = context.userId();
-        // Long userId = 159220116939083776L;
+
+        // Kiểm tra token trước khi tạo dự án
+        WalletTokenRequest checkTokenRequest = WalletTokenRequest.builder()
+                .bt(BigInteger.valueOf(request.budgetToken()))
+                .rt(BigInteger.valueOf(request.rewardToken()))
+                .isProject(true)
+                .build();
+        walletInternalFeignClient.checkTokenForProject(userId, checkTokenRequest);
+
         return ResponseApi.ok(projectService.createProject(userId, request, files));
     }
 
