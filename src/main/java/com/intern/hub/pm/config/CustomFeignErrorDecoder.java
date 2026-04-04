@@ -25,11 +25,20 @@ public class CustomFeignErrorDecoder implements ErrorDecoder {
 
                     JsonNode jsonNode = objectMapper.readTree(body);
 
-                    if (jsonNode.has("status") && jsonNode.get("status").has("message")) {
+                    // Nếu là một mảng, lấy phần tử đầu tiên (Wallet Service đôi khi trả về mảng
+                    // lỗi)
+                    if (jsonNode.isArray() && !jsonNode.isEmpty()) {
+                        jsonNode = jsonNode.get(0);
+                    }
+
+                    // Trường hợp 1: Cấu trúc lồng nhau của PM/HRM (status: { message: "..." })
+                    if (jsonNode.has("status") && jsonNode.get("status").isObject()
+                            && jsonNode.get("status").has("message")) {
                         String message = jsonNode.get("status").get("message").asText();
                         return new ConflictDataException(message);
                     }
 
+                    // Trường hợp 2: Cấu trúc phẳng của Wallet (message: "...")
                     if (jsonNode.has("message")) {
                         String message = jsonNode.get("message").asText();
                         return new ConflictDataException(message);

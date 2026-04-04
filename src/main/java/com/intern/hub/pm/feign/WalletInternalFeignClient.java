@@ -1,6 +1,6 @@
 package com.intern.hub.pm.feign;
 
-import com.intern.hub.library.common.dto.ResponseApi;
+import com.intern.hub.pm.feign.model.WalletApiResponse;
 import com.intern.hub.pm.config.FeignConfiguration;
 import com.intern.hub.pm.feign.model.WalletTokenRequest;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface WalletInternalFeignClient {
 
         @PostMapping("/wl/internal/project/check-token")
-        ResponseApi<Boolean> checkTokenForProject(
+        WalletApiResponse<Boolean> checkTokenForProject(
                         @RequestParam("userId") Long userId,
                         @RequestBody WalletTokenRequest request);
 }
