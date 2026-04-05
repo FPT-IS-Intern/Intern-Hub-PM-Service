@@ -7,7 +7,6 @@ import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
 import com.intern.hub.pm.dto.project.ProjectFilterRequest;
 import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
-import com.intern.hub.pm.dto.team.TeamResponse;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.feign.WalletInternalFeignClient;
 import com.intern.hub.pm.feign.model.WalletTokenRequest;
@@ -19,7 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,7 +33,6 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.math.BigInteger;
 import java.util.List;
 
 @RestController
@@ -55,8 +52,7 @@ public class ProjectController {
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         ProjectFilterRequest filter = ProjectFilterRequest.builder()
                 .name(name)
                 .status(status)
@@ -91,8 +87,8 @@ public class ProjectController {
 
         // Kiểm tra token trước khi tạo dự án
         WalletTokenRequest checkTokenRequest = WalletTokenRequest.builder()
-                .bt(BigInteger.valueOf(request.budgetToken()))
-                .rt(BigInteger.valueOf(request.rewardToken()))
+                .bt(request.budgetToken())
+                .rt(request.rewardToken())
                 .isProject(true)
                 .build();
         walletInternalFeignClient.checkTokenForProject(userId, checkTokenRequest);

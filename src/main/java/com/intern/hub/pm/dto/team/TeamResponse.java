@@ -3,6 +3,7 @@ package com.intern.hub.pm.dto.team;
 import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.model.constant.StatusWork;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,8 +14,8 @@ public record TeamResponse(
         String description,
         String note,
         StatusWork status,
-        Long budgetToken,
-        Long rewardToken,
+        BigInteger budgetToken,
+        BigInteger rewardToken,
         String creatorId,
         String assigneeId,
         String creatorName,

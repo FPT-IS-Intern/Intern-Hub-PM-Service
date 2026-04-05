@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -59,10 +60,10 @@ public class Team extends AuditEntity {
     StatusWork status;
 
     @Column(nullable = false)
-    Long budgetToken;
+    BigInteger budgetToken;
 
     @Column(nullable = false)
-    Long rewardToken;
+    BigInteger rewardToken;
 
     /**
      * =======================================================

@@ -9,14 +9,15 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public record ProjectUpsertRequest(
         @NotBlank String name,
         @NotBlank String description,
-        @NotNull @Min(0) Long budgetToken,
-        @NotNull @Min(0) Long rewardToken,
+        @NotNull @Min(0) BigInteger budgetToken,
+        @NotNull @Min(0) BigInteger rewardToken,
         @NotNull Long assigneeId,
         LocalDateTime startDate,
         LocalDateTime endDate,

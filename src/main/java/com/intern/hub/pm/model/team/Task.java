@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -59,7 +60,7 @@ public class Task extends AuditEntity {
     StatusWork status;
 
     @Column(nullable = false)
-    Long rewardToken;
+    BigInteger rewardToken;
 
     /**
      * =======================================================
@@ -75,29 +76,23 @@ public class Task extends AuditEntity {
 
     /**
      * =======================================================
-     * Document Project Charter  - DMS MODULE
+     * Document Project Charter - DMS MODULE
      * =======================================================
      */
 
     @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "entity_id",
-            referencedColumnName = "id",
-            insertable = false,
-            updatable = false,
-            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
-    )
+    @JoinColumn(name = "entity_id", referencedColumnName = "id", insertable = false, updatable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     List<Document> taskCharterDocument;
 
     /**
      * =======================================================
-     * Document Deliverables  - DMS MODULE
+     * Document Deliverables - DMS MODULE
      * =======================================================
      */
 
     String deliverableDescription; // đáp án
 
-    String deliverableLink;  //link
+    String deliverableLink; // link
 
     String completionComment; // nhận xét
 
