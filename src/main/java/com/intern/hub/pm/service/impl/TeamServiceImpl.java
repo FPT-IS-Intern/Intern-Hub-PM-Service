@@ -290,7 +290,7 @@ public class TeamServiceImpl implements TeamService {
         // Gọi sang Wallet để thực hiện release token (Duyệt cho Team)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedTeam.getId())
-                .workUUId(savedTeam.getId())
+                .workUUId(savedTeam.getTeamUUID())
                 .type("team")
                 .note(savedTeam.getNote())
                 .build();
@@ -326,8 +326,9 @@ public class TeamServiceImpl implements TeamService {
 
         // Gọi sang Wallet để lưu transaction cho Team (Module) lên Blockchain
         WalletTransactionModuleRequest txRequest = WalletTransactionModuleRequest.builder()
-                .moduleUUId(savedTeam.getId())
-                .projectUUId(savedTeam.getProject().getId())
+                .moduleId(savedTeam.getId())
+                .moduleUUId(savedTeam.getTeamUUID())
+                .projectUUId(savedTeam.getProject().getProjectUUID())
                 .creatorId(savedTeam.getCreatorId())
                 .assigneeId(savedTeam.getAssigneeId())
                 .bt(savedTeam.getBudgetToken())

@@ -5,6 +5,7 @@ import com.intern.hub.pm.config.FeignConfiguration;
 import com.intern.hub.pm.feign.model.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -20,6 +21,16 @@ public interface WalletInternalFeignClient {
     WalletApiResponse<Boolean> checkAndLockTask(
             @RequestParam("userId") Long userId,
             @RequestBody WalletTokenTaskRequest request);
+
+    @PutMapping("/wl/internal/project/edit/token")
+    WalletApiResponse<Void> editProjectTokens(
+            @RequestParam("userId") Long userId,
+            @RequestBody WalletWorkItemRequest request);
+
+    @PutMapping("/wl/internal/tasks/locked-tokens")
+    WalletApiResponse<Void> editTaskTokens(
+            @RequestParam("userId") Long userId,
+            @RequestBody WalletEditTaskRequest request);
 
     @PostMapping("/wl/internal/transaction/project")
     WalletApiResponse<Void> saveTransactionProject(

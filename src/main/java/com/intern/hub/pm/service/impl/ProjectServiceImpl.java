@@ -204,6 +204,15 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ConflictDataException("Ngày bắt đầu phải trước ngày kết thúc");
         }
 
+        // --- Token Recalculation Unified Flow ---
+        WalletWorkItemRequest editTokenRequest = WalletWorkItemRequest.builder()
+                .oldBt(project.getBudgetToken())
+                .oldRt(project.getRewardToken())
+                .newBt(request.budgetToken())
+                .newRt(request.rewardToken())
+                .build();
+        walletInternalFeignClient.editProjectTokens(UserContext.requiredUserId(), editTokenRequest);
+
         project.setName(request.name().trim());
         project.setDescription(request.description().trim());
         project.setBudgetToken(request.budgetToken());
@@ -311,7 +320,7 @@ public class ProjectServiceImpl implements ProjectService {
         // Gọi sang Wallet để thực hiện release token (Duyệt)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedProject.getId())
-                .workUUId(Long.parseLong(savedProject.getProjectUUID()))
+                .workUUId(savedProject.getProjectUUID())
                 .type("project")
                 .note(savedProject.getNote())
                 .build();
@@ -349,7 +358,7 @@ public class ProjectServiceImpl implements ProjectService {
         // Gọi sang Wallet để lưu transaction lên Blockchain
         WalletTransactionProjectRequest txRequest = WalletTransactionProjectRequest.builder()
                 .projectId(savedProject.getId())
-                .projectUUId(Long.parseLong(savedProject.getProjectUUID()))
+                .projectUUId(savedProject.getProjectUUID())
                 .creatorId(savedProject.getCreatorId())
                 .assigneeId(savedProject.getAssigneeId())
                 .bt(savedProject.getBudgetToken())

@@ -12,8 +12,9 @@ import java.math.BigInteger;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WalletTransactionTaskRequest {
-    private Long taskUUId;
-    private Long moduleUUId;
+    private Long taskId;
+    private String taskUUId;
+    private String moduleUUId;
     private Long creatorId;
     private Long assigneeId;
     private BigInteger rt;

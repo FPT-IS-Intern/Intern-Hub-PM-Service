@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class WalletBrowseWorkRequest {
     private Long entityId;
-    private Long workUUId;
+    private String workUUId;
     private String type;
     private String note;
 }

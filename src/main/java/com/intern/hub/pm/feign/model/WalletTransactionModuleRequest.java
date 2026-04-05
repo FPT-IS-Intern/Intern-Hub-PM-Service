@@ -12,8 +12,9 @@ import java.math.BigInteger;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WalletTransactionModuleRequest {
-    private Long moduleUUId;
-    private Long projectUUId;
+    private Long moduleId;
+    private String moduleUUId;
+    private String projectUUId;
     private Long creatorId;
     private Long assigneeId;
     private BigInteger bt;

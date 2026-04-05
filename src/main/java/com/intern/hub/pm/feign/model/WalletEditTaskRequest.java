@@ -11,11 +11,7 @@ import java.math.BigInteger;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WalletTransactionProjectRequest {
-    private Long projectId;
-    private String projectUUId;
-    private Long creatorId;
-    private Long assigneeId;
-    private BigInteger bt;
-    private BigInteger rt;
+public class WalletEditTaskRequest {
+    private BigInteger oldRt;
+    private BigInteger newRt;
 }

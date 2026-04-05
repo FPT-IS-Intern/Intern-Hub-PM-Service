@@ -151,8 +151,9 @@ public class TaskServiceImpl implements TaskService {
         Task savedTask = taskRepository.save(task);
 
         WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
-                .taskUUId(savedTask.getId())
-                .moduleUUId(savedTask.getTeam().getId())
+                .taskId(savedTask.getId())
+                .taskUUId(savedTask.getTaskUUID())
+                .moduleUUId(savedTask.getTeam().getTeamUUID())
                 .creatorId(savedTask.getCreatorId())
                 .assigneeId(savedTask.getAssigneeId())
                 .rt(savedTask.getRewardToken())
@@ -250,7 +251,7 @@ public class TaskServiceImpl implements TaskService {
         // Gọi sang Wallet để thực hiện release token (Duyệt cho Task)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedTask.getId())
-                .workUUId(Long.parseLong(savedTask.getTaskUUID()))
+                .workUUId(savedTask.getTaskUUID())
                 .type("task")
                 .note(savedTask.getNote())
                 .build();
