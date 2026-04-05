@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "wallet", url = "${services.wl.url:${WL_SERVICE_URL:http://localhost:9000}}", configuration = FeignConfiguration.class)
 public interface WalletInternalFeignClient {
 
-        @PostMapping("/wl/internal/project/check-token")
+        @PostMapping("/wl/internal/project/check-and-lock")
         WalletApiResponse<Boolean> checkTokenForProject(
                         @RequestParam("userId") Long userId,
                         @RequestBody WalletTokenRequest request);
