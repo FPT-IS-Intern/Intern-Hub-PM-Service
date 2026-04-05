@@ -27,6 +27,7 @@ public record ProjectResponse(
         LocalDateTime startDate,
         LocalDateTime endDate,
         List<DocumentResponse> charterDocuments,
+        List<DocumentResponse> deliverableDocuments,
         Long createdAt,
         Long updatedAt
 ) {

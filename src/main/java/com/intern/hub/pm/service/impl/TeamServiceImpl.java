@@ -402,6 +402,11 @@ public class TeamServiceImpl implements TeamService {
                 DocumentScope.TEAM,
                 DocumentType.CHARTER);
 
+        List<DocumentResponse> deliverableDocuments = documentService.getDocuments(
+                team.getId(),
+                DocumentScope.TEAM,
+                DocumentType.DELIVERABLE);
+
         Integer memberCount = teamMemberRepository.countByTeamIdAndStatus(team.getId(),
                 com.intern.hub.pm.model.constant.Status.ACTIVE);
 
@@ -424,6 +429,7 @@ public class TeamServiceImpl implements TeamService {
                 team.getStartDate(),
                 team.getEndDate(),
                 charterDocuments,
+                deliverableDocuments,
                 leadName,
                 memberCount != null ? memberCount : 0,
                 team.getCreatedAt(),

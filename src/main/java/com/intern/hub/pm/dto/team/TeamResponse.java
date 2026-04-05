@@ -26,6 +26,7 @@ public record TeamResponse(
         LocalDateTime startDate,
         LocalDateTime endDate,
         List<DocumentResponse> charterDocuments,
+        List<DocumentResponse> deliverableDocuments,
         String leadName,
         Integer memberCount,
         Long createdAt,

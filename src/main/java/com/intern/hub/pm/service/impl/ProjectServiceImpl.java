@@ -428,6 +428,8 @@ public class ProjectServiceImpl implements ProjectService {
             Long memberCount) {
         List<DocumentResponse> charterDocuments = documentService.getDocuments(
                 project.getId(), DocumentScope.PROJECT, DocumentType.CHARTER);
+        List<DocumentResponse> deliverableDocuments = documentService.getDocuments(
+                project.getId(), DocumentScope.PROJECT, DocumentType.DELIVERABLE);
 
         return new ProjectResponse(
                 String.valueOf(project.getId()),
@@ -449,6 +451,7 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getStartDate(),
                 project.getEndDate(),
                 charterDocuments,
+                deliverableDocuments,
                 project.getCreatedAt(),
                 project.getUpdatedAt());
     }
