@@ -4,7 +4,7 @@ public enum StatusWork {
     NOT_STARTED("Chưa bắt đầu"),
     IN_PROGRESS("Đang thực hiện"),
     OVERDUE("Trễ hạn"),
-    NEEDS_REVISION("Cần chỉnh sửa"),
+    NEEDS_REVISION("Cần sửa lại"),
     REJECTED("Từ chối nhận"),
     PENDING_REVIEW("Chờ duyệt"),
     COMPLETED("Hoàn thành"),
