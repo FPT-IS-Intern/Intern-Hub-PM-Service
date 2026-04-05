@@ -7,7 +7,7 @@ import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.WalletInternalFeignClient;
-import com.intern.hub.pm.feign.model.WalletTokenRequest;
+import com.intern.hub.pm.feign.model.*;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
@@ -152,7 +152,7 @@ public class TeamServiceImpl implements TeamService {
                 .rt(request.rewardToken())
                 .isProject(false)
                 .build();
-        walletInternalFeignClient.checkTokenForProject(userId, checkTokenRequest);
+        walletInternalFeignClient.checkAndLockProject(userId, checkTokenRequest);
 
         Team team = Team.builder()
                 .teamUUID(randomNumberUUI())
@@ -285,7 +285,18 @@ public class TeamServiceImpl implements TeamService {
 
         team.setStatus(StatusWork.COMPLETED);
         team.setNote(trimToNull(request.note()));
-        return toResponse(teamRepository.save(team));
+        Team savedTeam = teamRepository.save(team);
+
+        // Gọi sang Wallet để thực hiện release token (Duyệt cho Team)
+        WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
+                .entityId(savedTeam.getId())
+                .workUUId(savedTeam.getId())
+                .type("team")
+                .note(savedTeam.getNote())
+                .build();
+        walletInternalFeignClient.browseWork(browseRequest);
+
+        return toResponse(savedTeam);
     }
 
     @Override
@@ -311,7 +322,20 @@ public class TeamServiceImpl implements TeamService {
             throw new ForbiddenException("Chỉ người được giao mới có thể nhận team");
         }
         team.setStatus(StatusWork.IN_PROGRESS);
-        return toResponse(teamRepository.save(team));
+        Team savedTeam = teamRepository.save(team);
+
+        // Gọi sang Wallet để lưu transaction cho Team (Module) lên Blockchain
+        WalletTransactionModuleRequest txRequest = WalletTransactionModuleRequest.builder()
+                .moduleUUId(savedTeam.getId())
+                .projectUUId(savedTeam.getProject().getId())
+                .creatorId(savedTeam.getCreatorId())
+                .assigneeId(savedTeam.getAssigneeId())
+                .bt(savedTeam.getBudgetToken())
+                .rt(savedTeam.getRewardToken())
+                .build();
+        walletInternalFeignClient.saveTransactionModule(txRequest);
+
+        return toResponse(savedTeam);
     }
 
     private Team getActiveTeam(Long teamId) {

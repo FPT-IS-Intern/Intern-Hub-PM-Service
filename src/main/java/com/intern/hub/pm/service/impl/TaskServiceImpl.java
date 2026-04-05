@@ -9,6 +9,8 @@ import com.intern.hub.pm.dto.task.TaskReviewRequest;
 import com.intern.hub.pm.dto.task.TaskUpsertRequest;
 import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
+import com.intern.hub.pm.feign.WalletInternalFeignClient;
+import com.intern.hub.pm.feign.model.*;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
@@ -49,12 +51,19 @@ public class TaskServiceImpl implements TaskService {
     private final TeamRepository teamRepository;
     private final DocumentService documentService;
     private final HrmInternalFeignClient hrmInternalFeignClient;
+    private final WalletInternalFeignClient walletInternalFeignClient;
 
     @Override
     @Transactional
     public TaskResponse createTask(Long projectTeamId, TaskUpsertRequest request, List<MultipartFile> files) {
         Team team = getActiveTeam(projectTeamId);
         Long currentUserId = UserContext.requiredUserId();
+
+        // --- Check & Lock Token Unified Flow ---
+        WalletTokenTaskRequest checkTokenRequest = WalletTokenTaskRequest.builder()
+                .rt(request.rewardToken())
+                .build();
+        walletInternalFeignClient.checkAndLockTask(currentUserId, checkTokenRequest);
 
         Task task = Task.builder()
                 .team(team)
@@ -139,7 +148,18 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("Chỉ người được giao task mới có thể nhận task");
         }
         task.setStatus(StatusWork.IN_PROGRESS);
-        return toResponse(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+
+        WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
+                .taskUUId(savedTask.getId())
+                .moduleUUId(savedTask.getTeam().getId())
+                .creatorId(savedTask.getCreatorId())
+                .assigneeId(savedTask.getAssigneeId())
+                .rt(savedTask.getRewardToken())
+                .build();
+        walletInternalFeignClient.saveTransactionTask(txRequest);
+
+        return toResponse(savedTask);
     }
 
     @Override
@@ -225,7 +245,18 @@ public class TaskServiceImpl implements TaskService {
         Task task = getPendingReviewTask(taskId);
         assertTaskOwner(task);
         task.setStatus(StatusWork.COMPLETED);
-        return toResponse(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+
+        // Gọi sang Wallet để thực hiện release token (Duyệt cho Task)
+        WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
+                .entityId(savedTask.getId())
+                .workUUId(Long.parseLong(savedTask.getTaskUUID()))
+                .type("task")
+                .note(savedTask.getNote())
+                .build();
+        walletInternalFeignClient.browseWork(browseRequest);
+
+        return toResponse(savedTask);
     }
 
     @Override

@@ -91,7 +91,7 @@ public class ProjectController {
                 .rt(request.rewardToken())
                 .isProject(true)
                 .build();
-        walletInternalFeignClient.checkTokenForProject(userId, checkTokenRequest);
+        walletInternalFeignClient.checkAndLockProject(userId, checkTokenRequest);
 
         return ResponseApi.ok(projectService.createProject(userId, request, files));
     }

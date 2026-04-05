@@ -23,6 +23,8 @@ import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
+import com.intern.hub.pm.feign.WalletInternalFeignClient;
+import com.intern.hub.pm.feign.model.*;
 import com.intern.hub.pm.utils.UserContext;
 import lombok.RequiredArgsConstructor;
 import com.intern.hub.library.common.exception.ForbiddenException;
@@ -52,6 +54,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final TeamRepository teamRepository;
     private final DocumentService documentService;
     private final HrmInternalFeignClient hrmInternalFeignClient;
+    private final WalletInternalFeignClient walletInternalFeignClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -303,7 +306,18 @@ public class ProjectServiceImpl implements ProjectService {
 
         project.setStatus(StatusWork.COMPLETED);
         project.setNote(trimToNull(request.note()));
-        return toResponse(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+
+        // Gọi sang Wallet để thực hiện release token (Duyệt)
+        WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
+                .entityId(savedProject.getId())
+                .workUUId(Long.parseLong(savedProject.getProjectUUID()))
+                .type("project")
+                .note(savedProject.getNote())
+                .build();
+        walletInternalFeignClient.browseWork(browseRequest);
+
+        return toResponse(savedProject);
     }
 
     @Override
@@ -330,7 +344,20 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("Chỉ người được giao mới có thể nhận dự án");
         }
         project.setStatus(StatusWork.IN_PROGRESS);
-        return toResponse(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+
+        // Gọi sang Wallet để lưu transaction lên Blockchain
+        WalletTransactionProjectRequest txRequest = WalletTransactionProjectRequest.builder()
+                .projectId(savedProject.getId())
+                .projectUUId(Long.parseLong(savedProject.getProjectUUID()))
+                .creatorId(savedProject.getCreatorId())
+                .assigneeId(savedProject.getAssigneeId())
+                .bt(savedProject.getBudgetToken())
+                .rt(savedProject.getRewardToken())
+                .build();
+        walletInternalFeignClient.saveTransactionProject(txRequest);
+
+        return toResponse(savedProject);
     }
 
     @Override
