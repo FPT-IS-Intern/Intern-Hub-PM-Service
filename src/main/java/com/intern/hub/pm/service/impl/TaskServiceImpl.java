@@ -177,13 +177,6 @@ public class TaskServiceImpl implements TaskService {
         task.setStatus(StatusWork.REJECTED);
         Task savedTask = taskRepository.save(task);
 
-        // Gọi sang Wallet để giải phóng token đã khóa cho Task
-        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
-                .oldRt(savedTask.getRewardToken())
-                .newRt(BigInteger.ZERO)
-                .build();
-        walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
-
         return toResponse(savedTask);
     }
 
@@ -198,6 +191,13 @@ public class TaskServiceImpl implements TaskService {
     public TaskResponse updateTask(Long taskId, TaskUpsertRequest request, List<MultipartFile> files) {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
+
+        // --- Token Recalculation Unified Flow ---
+        WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
+                .oldRt(task.getRewardToken())
+                .newRt(request.rewardToken())
+                .build();
+        walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
 
         task.setName(request.name().trim());
         task.setDescription(request.description().trim());
@@ -225,6 +225,13 @@ public class TaskServiceImpl implements TaskService {
         }
         task.setStatus(StatusWork.CANCELED);
         taskRepository.save(task);
+        // Gọi sang Wallet để giải phóng token đã khóa cho Task
+        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                .oldRt(task.getRewardToken())
+                .newRt(BigInteger.ZERO)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfTask(task.getCreatorId(), releaseRequest);
+
     }
 
     @Override

@@ -205,6 +205,16 @@ public class TeamServiceImpl implements TeamService {
             throw new ConflictDataException("Chỉ có thể thu hồi/hủy team khi chưa bắt đầu hoặc bị từ chối");
         }
 
+        // --- Token Recalculation Unified Flow ---
+        WalletWorkItemRequest editTokenRequest = WalletWorkItemRequest.builder()
+                .oldBt(team.getBudgetToken())
+                .oldRt(team.getRewardToken())
+                .newBt(request.budgetToken())
+                .newRt(request.rewardToken())
+                .project(false)
+                .build();
+        walletInternalFeignClient.editProjectTokens(UserContext.requiredUserId(), editTokenRequest);
+
         team.setName(request.name().trim());
         team.setDescription(request.description().trim());
         team.setBudgetToken(request.budgetToken());
@@ -239,6 +249,16 @@ public class TeamServiceImpl implements TeamService {
 
         team.setStatus(StatusWork.CANCELED);
         teamRepository.save(team);
+
+        // Gọi sang Wallet để giải phóng token đã khóa cho Team
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(team.getBudgetToken())
+                .oldRt(team.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .project(false)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(team.getCreatorId(), releaseRequest);
     }
 
     @Override
@@ -462,15 +482,6 @@ public class TeamServiceImpl implements TeamService {
         }
         team.setStatus(StatusWork.REJECTED);
         Team savedTeam = teamRepository.save(team);
-
-        // Gọi sang Wallet để giải phóng token đã khóa cho Team
-        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
-                .oldBt(savedTeam.getBudgetToken())
-                .oldRt(savedTeam.getRewardToken())
-                .newBt(BigInteger.ZERO)
-                .newRt(BigInteger.ZERO)
-                .build();
-        walletInternalFeignClient.recalculateTokensOfWork(savedTeam.getCreatorId(), releaseRequest);
 
         return toResponse(savedTeam);
     }

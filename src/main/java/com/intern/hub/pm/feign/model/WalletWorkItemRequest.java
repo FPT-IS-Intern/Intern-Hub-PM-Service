@@ -16,4 +16,6 @@ public class WalletWorkItemRequest {
     private BigInteger oldRt;
     private BigInteger newBt;
     private BigInteger newRt;
+    @Builder.Default
+    private boolean project = false;
 }

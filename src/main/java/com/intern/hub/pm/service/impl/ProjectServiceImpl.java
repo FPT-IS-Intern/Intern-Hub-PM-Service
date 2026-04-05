@@ -212,6 +212,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .oldRt(project.getRewardToken())
                 .newBt(request.budgetToken())
                 .newRt(request.rewardToken())
+                .project(true)
                 .build();
         walletInternalFeignClient.editProjectTokens(UserContext.requiredUserId(), editTokenRequest);
 
@@ -261,6 +262,16 @@ public class ProjectServiceImpl implements ProjectService {
         }
         project.setStatus(StatusWork.CANCELED);
         projectRepository.save(project);
+
+        // Gọi sang Wallet để giải phóng token đã khóa
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(project.getBudgetToken())
+                .oldRt(project.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .project(true)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(project.getCreatorId(), releaseRequest);
     }
 
     @Override
@@ -380,22 +391,13 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getActiveProject(projectId);
         Long currentUserId = UserContext.requiredUserId();
         if (!currentUserId.equals(project.getAssigneeId())) {
-            throw new ForbiddenException("Chỉ người được giao mới có thể từ chối dự án");
+            throw new ForbiddenException("Chỉ người được nhận mới có thể từ chối dự án");
         }
         if (project.getStatus() != StatusWork.NOT_STARTED) {
             throw new ConflictDataException("Chỉ có thể từ chối dự án khi ở trạng thái Chưa bắt đầu");
         }
         project.setStatus(StatusWork.REJECTED);
         Project savedProject = projectRepository.save(project);
-
-        // Gọi sang Wallet để giải phóng token đã khóa
-        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
-                .oldBt(savedProject.getBudgetToken())
-                .oldRt(savedProject.getRewardToken())
-                .newBt(BigInteger.ZERO)
-                .newRt(BigInteger.ZERO)
-                .build();
-        walletInternalFeignClient.recalculateTokensOfWork(savedProject.getCreatorId(), releaseRequest);
 
         return toResponse(savedProject);
     }
