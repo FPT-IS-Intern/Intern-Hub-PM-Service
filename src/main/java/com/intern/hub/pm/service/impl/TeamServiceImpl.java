@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -290,9 +291,12 @@ public class TeamServiceImpl implements TeamService {
         // Gọi sang Wallet để thực hiện release token (Duyệt cho Team)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedTeam.getId())
+                .userId(savedTeam.getCreatorId())
                 .workUUId(savedTeam.getTeamUUID())
                 .type("team")
                 .note(savedTeam.getNote())
+                .bt(savedTeam.getBudgetToken())
+                .rt(savedTeam.getRewardToken())
                 .build();
         walletInternalFeignClient.browseWork(browseRequest);
 
@@ -451,6 +455,17 @@ public class TeamServiceImpl implements TeamService {
             throw new IllegalArgumentException("Chỉ có thể từ chối team khi ở trạng thái Chưa bắt đầu");
         }
         team.setStatus(StatusWork.REJECTED);
-        return toResponse(teamRepository.save(team));
+        Team savedTeam = teamRepository.save(team);
+
+        // Gọi sang Wallet để giải phóng token đã khóa cho Team
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(savedTeam.getBudgetToken())
+                .oldRt(savedTeam.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(savedTeam.getCreatorId(), releaseRequest);
+
+        return toResponse(savedTeam);
     }
 }

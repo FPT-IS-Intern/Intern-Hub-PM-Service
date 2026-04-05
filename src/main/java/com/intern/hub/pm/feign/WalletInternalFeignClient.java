@@ -4,6 +4,7 @@ import com.intern.hub.pm.feign.model.WalletApiResponse;
 import com.intern.hub.pm.config.FeignConfiguration;
 import com.intern.hub.pm.feign.model.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,4 +48,14 @@ public interface WalletInternalFeignClient {
     @PostMapping("/wl/internal/transaction/browse")
     WalletApiResponse<Void> browseWork(
             @RequestBody WalletBrowseWorkRequest request);
+
+    @DeleteMapping("/wl/internal/project/locked-tokens")
+    WalletApiResponse<Void> recalculateTokensOfWork(
+            @RequestParam("userId") Long userId,
+            @RequestBody WalletWorkItemRequest request);
+
+    @DeleteMapping("/wl/internal/task/locked-tokens")
+    WalletApiResponse<Void> recalculateTokensOfTask(
+            @RequestParam("userId") Long userId,
+            @RequestBody WalletEditTaskRequest request);
 }

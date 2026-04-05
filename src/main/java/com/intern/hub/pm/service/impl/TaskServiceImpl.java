@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -174,7 +175,16 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Chỉ có thể từ chối task khi ở trạng thái Chưa bắt đầu");
         }
         task.setStatus(StatusWork.REJECTED);
-        return toResponse(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+
+        // Gọi sang Wallet để giải phóng token đã khóa cho Task
+        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                .oldRt(savedTask.getRewardToken())
+                .newRt(BigInteger.ZERO)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
+
+        return toResponse(savedTask);
     }
 
     @Override
@@ -251,9 +261,11 @@ public class TaskServiceImpl implements TaskService {
         // Gọi sang Wallet để thực hiện release token (Duyệt cho Task)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedTask.getId())
+                .userId(savedTask.getCreatorId())
                 .workUUId(savedTask.getTaskUUID())
                 .type("task")
                 .note(savedTask.getNote())
+                .rt(savedTask.getRewardToken())
                 .build();
         walletInternalFeignClient.browseWork(browseRequest);
 

@@ -38,6 +38,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -320,9 +322,12 @@ public class ProjectServiceImpl implements ProjectService {
         // Gọi sang Wallet để thực hiện release token (Duyệt)
         WalletBrowseWorkRequest browseRequest = WalletBrowseWorkRequest.builder()
                 .entityId(savedProject.getId())
+                .userId(savedProject.getCreatorId())
                 .workUUId(savedProject.getProjectUUID())
                 .type("project")
                 .note(savedProject.getNote())
+                .bt(savedProject.getBudgetToken())
+                .rt(savedProject.getRewardToken())
                 .build();
         walletInternalFeignClient.browseWork(browseRequest);
 
@@ -381,7 +386,18 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ConflictDataException("Chỉ có thể từ chối dự án khi ở trạng thái Chưa bắt đầu");
         }
         project.setStatus(StatusWork.REJECTED);
-        return toResponse(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+
+        // Gọi sang Wallet để giải phóng token đã khóa
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(savedProject.getBudgetToken())
+                .oldRt(savedProject.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(savedProject.getCreatorId(), releaseRequest);
+
+        return toResponse(savedProject);
     }
 
     private Project getActiveProject(Long projectId) {
