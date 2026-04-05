@@ -6,6 +6,8 @@ import com.intern.hub.pm.dto.document.DocumentResponse;
 import com.intern.hub.pm.dto.project.ApproveRequest;
 import com.intern.hub.pm.dto.team.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
+import com.intern.hub.pm.feign.WalletInternalFeignClient;
+import com.intern.hub.pm.feign.model.WalletTokenRequest;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.repository.specification.TeamSpecification;
 import com.intern.hub.pm.model.document.DocumentScope;
@@ -51,6 +53,7 @@ public class TeamServiceImpl implements TeamService {
     private final TeamMemberRepository teamMemberRepository;
     private final DocumentService documentService;
     private final HrmInternalFeignClient hrmInternalFeignClient;
+    private final WalletInternalFeignClient walletInternalFeignClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -142,6 +145,14 @@ public class TeamServiceImpl implements TeamService {
     public TeamResponse createTeam(Long userId, TeamUpsertRequest request, List<MultipartFile> files) {
         validateDateRange(request.startDate(), request.endDate());
         Project project = getProject(request.projectId());
+
+        // Kiểm tra token trước khi tạo team
+        WalletTokenRequest checkTokenRequest = WalletTokenRequest.builder()
+                .bt(request.budgetToken())
+                .rt(request.rewardToken())
+                .isProject(false)
+                .build();
+        walletInternalFeignClient.checkTokenForProject(userId, checkTokenRequest);
 
         Team team = Team.builder()
                 .teamUUID(randomNumberUUI())
