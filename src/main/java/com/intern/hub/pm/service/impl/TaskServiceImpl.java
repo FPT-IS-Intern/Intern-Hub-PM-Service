@@ -181,6 +181,21 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskResponse quitTask(Long taskId) {
+        Task task = getActiveTask(taskId);
+        Long currentUserId = UserContext.requiredUserId();
+        if (!currentUserId.equals(task.getAssigneeId())) {
+            throw new ForbiddenException("Chỉ người được giao mới có thể dùng chức năng không làm nữa");
+        }
+        if (task.getStatus() != StatusWork.IN_PROGRESS && task.getStatus() != StatusWork.NEEDS_REVISION) {
+            throw new BadRequestException("Chỉ có thể dùng chức năng không làm nữa khi đang thực hiện hoặc cần sửa lại");
+        }
+        task.setStatus(StatusWork.QUIT);
+        Task savedTask = taskRepository.save(task);
+        return toResponse(savedTask);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public TaskResponse getTask(Long taskId) {
         return toResponse(getActiveTask(taskId));
@@ -220,8 +235,8 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long taskId) {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
-        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED) {
-            throw new BadRequestException("Chỉ có thể thu hồi/hủy task khi chưa bắt đầu hoặc bị từ chối");
+        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED && task.getStatus() != StatusWork.QUIT) {
+            throw new BadRequestException("Chỉ có thể thu hồi/hủy task khi chưa bắt đầu, bị từ chối hoặc người làm không làm nữa");
         }
         task.setStatus(StatusWork.CANCELED);
         taskRepository.save(task);

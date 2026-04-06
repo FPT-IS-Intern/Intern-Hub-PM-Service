@@ -8,7 +8,8 @@ public enum StatusWork {
     REJECTED("Từ chối nhận"),
     PENDING_REVIEW("Chờ duyệt"),
     COMPLETED("Hoàn thành"),
-    CANCELED("Đã hủy");
+    CANCELED("Đã hủy"),
+    QUIT("Không làm nữa");
 
     private final String label;
 

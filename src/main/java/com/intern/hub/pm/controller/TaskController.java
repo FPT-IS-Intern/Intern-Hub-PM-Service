@@ -132,8 +132,15 @@ public class TaskController {
 
     @PostMapping("/tasks/{taskId}/reject")
     @Operation(summary = "Từ chối nhận task", description = "User từ chối nhận task được giao (trạng thái sẽ chuyển sang REJECTED).")
-    public ResponseApi<TaskResponse> refuseToAccept(
+    public ResponseApi<TaskResponse> rejectTask(
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.refuseTask(taskId));
+    }
+
+    @PostMapping("/tasks/{taskId}/quit")
+    @Operation(summary = "Không làm nữa", description = "User từ bỏ task khi đang thực hiện hoặc cần sửa lại.")
+    public ResponseApi<TaskResponse> quitTask(
+            @PathVariable Long taskId) {
+        return ResponseApi.ok(taskService.quitTask(taskId));
     }
 }

@@ -39,5 +39,6 @@ public interface TaskService {
     TaskResponse acceptTask(Long taskId);
 
     TaskResponse refuseTask(Long taskId);
+    TaskResponse quitTask(Long taskId);
 
 }
