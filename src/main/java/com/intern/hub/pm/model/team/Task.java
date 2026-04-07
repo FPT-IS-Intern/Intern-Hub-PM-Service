@@ -71,7 +71,7 @@ public class Task extends AuditEntity {
     @Column(name = "creator_id", nullable = false)
     Long creatorId;
 
-    @Column(name = "assignee_id", nullable = false)
+    @Column(name = "assignee_id", nullable = true)
     Long assigneeId;
 
     /**

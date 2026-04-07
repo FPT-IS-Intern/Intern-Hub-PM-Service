@@ -143,4 +143,21 @@ public class TaskController {
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.quitTask(taskId));
     }
+
+    @PostMapping("/teams/{teamId}/tasks/pending/filter")
+    @Operation(summary = "Lấy danh sách task treo của Team", description = "Trả về danh sách task chưa có người nhận của Team có phân trang và hỗ trợ lọc.")
+    public ResponseApi<PaginatedData<TaskResponse>> getPendingTeamTasks(
+            @PathVariable Long teamId,
+            @RequestBody(required = false) TaskFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseApi.ok(taskService.getPendingTeamTasks(teamId, filter, page, size));
+    }
+
+    @PostMapping("/tasks/{taskId}/claim")
+    @Operation(summary = "Nhận task treo", description = "Thành viên trong Team tự nhận task đang treo để làm.")
+    public ResponseApi<TaskResponse> claimTask(
+            @PathVariable Long taskId) {
+        return ResponseApi.ok(taskService.claimTask(taskId));
+    }
 }

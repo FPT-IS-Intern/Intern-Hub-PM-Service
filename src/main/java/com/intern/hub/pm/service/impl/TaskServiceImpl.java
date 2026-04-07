@@ -11,13 +11,14 @@ import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.WalletInternalFeignClient;
 import com.intern.hub.pm.feign.model.*;
+import com.intern.hub.pm.model.constant.Status;
 import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.model.document.DocumentScope;
 import com.intern.hub.pm.model.document.DocumentType;
 import com.intern.hub.pm.model.team.Task;
 import com.intern.hub.pm.model.team.Team;
-import com.intern.hub.pm.repository.ProjectRepository;
 import com.intern.hub.pm.repository.TaskRepository;
+import com.intern.hub.pm.repository.TeamMemberRepository;
 import com.intern.hub.pm.repository.TeamRepository;
 import com.intern.hub.pm.service.DocumentService;
 import com.intern.hub.pm.service.TaskService;
@@ -48,8 +49,8 @@ import org.springframework.data.jpa.domain.Specification;
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
-    private final ProjectRepository projectRepository;
     private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final DocumentService documentService;
     private final HrmInternalFeignClient hrmInternalFeignClient;
     private final WalletInternalFeignClient walletInternalFeignClient;
@@ -60,7 +61,6 @@ public class TaskServiceImpl implements TaskService {
         Team team = getActiveTeam(projectTeamId);
         Long currentUserId = UserContext.requiredUserId();
 
-        // --- Check & Lock Token Unified Flow ---
         WalletTokenTaskRequest checkTokenRequest = WalletTokenTaskRequest.builder()
                 .rt(request.rewardToken())
                 .build();
@@ -202,6 +202,60 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PaginatedData<TaskResponse> getPendingTeamTasks(Long teamId, TaskFilterRequest filter, int page, int size) {
+        Specification<Task> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("team").get("id"), teamId));
+            predicates.add(cb.isNull(root.get("assigneeId")));
+            predicates.add(cb.notEqual(root.get("status"), StatusWork.CANCELED));
+
+            if (filter != null) {
+                if (filter.name() != null && !filter.name().trim().isEmpty()) {
+                    predicates.add(cb.like(cb.lower(root.get("name")), "%" + filter.name().toLowerCase().trim() + "%"));
+                }
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return getTasks(spec, page, size);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse claimTask(Long taskId) {
+        Task task = getActiveTask(taskId);
+        Long currentUserId = UserContext.requiredUserId();
+
+        if (task.getAssigneeId() != null) {
+            throw new BadRequestException("Nhiệm vụ này đã có người nhận");
+        }
+
+        // Kiểm tra user có thuộc team không
+        boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndStatus(
+                task.getTeam().getId(), currentUserId, Status.ACTIVE);
+        if (!isMember) {
+            throw new ForbiddenException("Bạn phải là thành viên của Team mới có thể nhận nhiệm vụ này");
+        }
+
+        task.setAssigneeId(currentUserId);
+        task.setStatus(StatusWork.IN_PROGRESS);
+        Task savedTask = taskRepository.save(task);
+
+        // Lưu giao dịch vào Wallet
+        WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
+                .taskId(savedTask.getId())
+                .taskUUId(savedTask.getTaskUUID())
+                .moduleUUId(savedTask.getTeam().getTeamUUID())
+                .creatorId(savedTask.getCreatorId())
+                .assigneeId(savedTask.getAssigneeId())
+                .rt(savedTask.getRewardToken())
+                .build();
+        walletInternalFeignClient.saveTransactionTask(txRequest);
+
+        return toResponse(savedTask);
+    }
+
+    @Override
     @Transactional
     public TaskResponse updateTask(Long taskId, TaskUpsertRequest request, List<MultipartFile> files) {
         Task task = getActiveTask(taskId);
@@ -321,10 +375,13 @@ public class TaskServiceImpl implements TaskService {
         Map<Long, String> userNameMap = fetchUserNames(userIds);
 
         List<TaskResponse> items = tasks.stream()
-                .map(t -> toResponseWithNames(
-                        t,
-                        userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")))
+                .map(t -> {
+                    String creatorName = userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")");
+                    String assigneeName = t.getAssigneeId() != null
+                            ? userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")
+                            : "Chưa có người nhận";
+                    return toResponseWithNames(t, creatorName, assigneeName);
+                })
                 .toList();
 
         return PaginatedData.<TaskResponse>builder()
@@ -402,7 +459,9 @@ public class TaskServiceImpl implements TaskService {
 
     private TaskResponse toResponse(Task task) {
         String creatorName = "User (ID: " + task.getCreatorId() + ")";
-        String assigneeName = "User (ID: " + task.getAssigneeId() + ")";
+        String assigneeName = task.getAssigneeId() != null
+                ? "User (ID: " + task.getAssigneeId() + ")"
+                : "Chưa có người nhận";
 
         try {
             if (task.getCreatorId() != null) {

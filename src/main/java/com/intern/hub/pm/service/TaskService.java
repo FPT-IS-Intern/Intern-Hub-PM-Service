@@ -41,4 +41,7 @@ public interface TaskService {
     TaskResponse refuseTask(Long taskId);
     TaskResponse quitTask(Long taskId);
 
+    PaginatedData<TaskResponse> getPendingTeamTasks(Long teamId, TaskFilterRequest filter, int page, int size);
+
+    TaskResponse claimTask(Long taskId);
 }

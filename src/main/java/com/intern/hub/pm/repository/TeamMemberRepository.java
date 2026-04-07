@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
+    boolean existsByTeamIdAndUserIdAndStatus(Long teamId, Long userId, Status status);
     Integer countByTeamIdAndStatus(Long teamId, Status status);
     List<TeamMember> findAllByTeamIdAndStatus(Long teamId, Status status);
     Page<TeamMember> findAllByTeamIdAndStatus(Long teamId, Status status, Pageable pageable);
