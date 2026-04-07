@@ -148,9 +148,17 @@ public class TaskServiceImpl implements TaskService {
     public TaskResponse acceptTask(Long taskId) {
         Task task = getActiveTask(taskId);
         Long currentUserId = UserContext.requiredUserId();
-        if (!currentUserId.equals(task.getAssigneeId())) {
+
+        if (currentUserId.equals(task.getCreatorId())) {
+            throw new ForbiddenException("Người giao việc không thể tự nhận task");
+        }
+
+        if (task.getAssigneeId() == null) {
+            task.setAssigneeId(currentUserId);
+        } else if (!currentUserId.equals(task.getAssigneeId())) {
             throw new ForbiddenException("Chỉ người được giao task mới có thể nhận task");
         }
+
         task.setStatus(StatusWork.IN_PROGRESS);
         Task savedTask = taskRepository.save(task);
 
