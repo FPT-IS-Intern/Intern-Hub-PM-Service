@@ -61,6 +61,9 @@ public class TaskServiceImpl implements TaskService {
         Team team = getActiveTeam(projectTeamId);
         Long currentUserId = UserContext.requiredUserId();
 
+        // Kiểm tra ngân sách của Team con (Team -> Task)
+        validateTeamBudgetLimit(team, null, request.rewardToken());
+
         WalletTokenTaskRequest checkTokenRequest = WalletTokenTaskRequest.builder()
                 .rt(request.rewardToken())
                 .build();
@@ -261,6 +264,9 @@ public class TaskServiceImpl implements TaskService {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
 
+        // Kiểm tra ngân sách của Team con khi cập nhật
+        validateTeamBudgetLimit(task.getTeam(), task.getId(), request.rewardToken());
+
         // --- Token Recalculation Unified Flow ---
         WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
@@ -422,6 +428,19 @@ public class TaskServiceImpl implements TaskService {
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private void validateTeamBudgetLimit(Team team, Long currentTaskId, BigInteger newRt) {
+        BigInteger currentSumRt = taskRepository.sumRewardTokensByTeamId(team.getId(), currentTaskId);
+        if (currentSumRt == null)
+            currentSumRt = BigInteger.ZERO;
+
+        BigInteger totalRt = currentSumRt.add(newRt);
+
+        if (totalRt.compareTo(team.getBudgetToken()) > 0) {
+            throw new BadRequestException("Tổng thưởng (Reward) của các task trong team (" + totalRt
+                    + ") vượt quá ngân sách hoạt động của team (" + team.getBudgetToken() + ")");
+        }
     }
 
     private Team getActiveTeam(Long teamId) {

@@ -46,4 +46,6 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
             Pageable pageable
     );
 
+    @Query("SELECT SUM(t.budgetToken + t.rewardToken) FROM Team t WHERE t.project.id = :projectId AND t.status <> 'CANCELED' AND (:currentTeamId IS NULL OR t.id <> :currentTeamId)")
+    java.math.BigInteger sumTotalTokensByProjectId(@Param("projectId") Long projectId, @Param("currentTeamId") Long currentTeamId);
 }

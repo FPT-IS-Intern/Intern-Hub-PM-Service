@@ -86,8 +86,10 @@ public class TeamServiceImpl implements TeamService {
     private PaginatedData<TeamResponse> toPaginatedResponse(List<Team> teams, Page<Team> teamPage) {
         java.util.Set<Long> userIds = new java.util.HashSet<>();
         teams.forEach(t -> {
-            if (t.getAssigneeId() != null) userIds.add(t.getAssigneeId());
-            if (t.getCreatorId() != null) userIds.add(t.getCreatorId());
+            if (t.getAssigneeId() != null)
+                userIds.add(t.getAssigneeId());
+            if (t.getCreatorId() != null)
+                userIds.add(t.getCreatorId());
         });
 
         Map<Long, String> userNameMap = new HashMap<>();
@@ -147,7 +149,10 @@ public class TeamServiceImpl implements TeamService {
         validateDateRange(request.startDate(), request.endDate());
         Project project = getProject(request.projectId());
 
-        // Kiểm tra token trước khi tạo team
+        // Kiểm tra ngân sách của Dự án con (Project -> Team)
+        validateProjectTokenLimit(project, null, request.budgetToken(), request.rewardToken());
+
+        // Kiểm tra token trong ví người dùng trước khi tạo team
         WalletTokenRequest checkTokenRequest = WalletTokenRequest.builder()
                 .bt(request.budgetToken())
                 .rt(request.rewardToken())
@@ -204,6 +209,10 @@ public class TeamServiceImpl implements TeamService {
         if (team.getStatus() != StatusWork.NOT_STARTED && team.getStatus() != StatusWork.REJECTED) {
             throw new ConflictDataException("Chỉ có thể thu hồi/hủy team khi chưa bắt đầu hoặc bị từ chối");
         }
+
+        Project project = getProject(request.projectId());
+        // Kiểm tra ngân sách của Dự án con khi cập nhật
+        validateProjectTokenLimit(project, team.getId(), request.budgetToken(), request.rewardToken());
 
         // --- Token Recalculation Unified Flow ---
         WalletWorkItemRequest editTokenRequest = WalletWorkItemRequest.builder()
@@ -361,6 +370,21 @@ public class TeamServiceImpl implements TeamService {
         walletInternalFeignClient.saveTransactionModule(txRequest);
 
         return toResponse(savedTeam);
+    }
+
+    private void validateProjectTokenLimit(Project project, Long currentTeamId, BigInteger newBt, BigInteger newRt) {
+        BigInteger currentTotalTokens = teamRepository.sumTotalTokensByProjectId(project.getId(), currentTeamId);
+        if (currentTotalTokens == null)
+            currentTotalTokens = BigInteger.ZERO;
+
+        BigInteger childTotal = newBt.add(newRt);
+        BigInteger totalConsumption = currentTotalTokens.add(childTotal);
+
+        if (totalConsumption.compareTo(project.getBudgetToken()) > 0) {
+            throw new ConflictDataException(
+                    "Tổng chi phí (BT+RT) của các team (" + totalConsumption + ") vượt quá ngân sách hoạt động của dự án ("
+                            + project.getBudgetToken() + ")");
+        }
     }
 
     private Team getActiveTeam(Long teamId) {

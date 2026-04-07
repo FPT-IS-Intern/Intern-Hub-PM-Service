@@ -27,4 +27,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @Query("SELECT COUNT(t) FROM Task t WHERE t.team.project.id = :projectId AND t.assigneeId = :assigneeId AND t.status <> :status")
     long countByProjectIdAndAssigneeIdAndStatusNot(@Param("projectId") Long projectId, @Param("assigneeId") Long assigneeId, @Param("status") StatusWork status);
 
+    @Query("SELECT SUM(t.rewardToken) FROM Task t WHERE t.team.id = :teamId AND t.status <> 'CANCELED' AND (:currentTaskId IS NULL OR t.id <> :currentTaskId)")
+    java.math.BigInteger sumRewardTokensByTeamId(@Param("teamId") Long teamId, @Param("currentTaskId") Long currentTaskId);
 }
