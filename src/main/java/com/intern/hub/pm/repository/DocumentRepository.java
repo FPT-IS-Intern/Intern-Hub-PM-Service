@@ -13,6 +13,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
                                                                     DocumentScope documentScope,
                                                                     DocumentType documentType);
 
+    List<Document> findAllByEntityIdInAndDocumentScope(List<Long> entityIds, DocumentScope documentScope);
+
     void deleteAllByEntityIdAndDocumentScopeAndDocumentType(Long entityId,
                                                             DocumentScope documentScope,
                                                             DocumentType documentType);

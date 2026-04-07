@@ -15,7 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,30 @@ public class DocumentServiceImpl implements DocumentService {
                         document.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Map<DocumentType, List<DocumentResponse>>> getDocumentsBatch(List<Long> entityIds,
+            DocumentScope documentScope) {
+        if (entityIds == null || entityIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Document> allDocuments = documentRepository.findAllByEntityIdInAndDocumentScope(entityIds,
+                documentScope);
+
+        return allDocuments.stream().collect(Collectors.groupingBy(
+                Document::getEntityId,
+                Collectors.groupingBy(
+                        Document::getDocumentType,
+                        Collectors.mapping(
+                                doc -> new DocumentResponse(
+                                        doc.getId(),
+                                        doc.getFileName(),
+                                        doc.getFileUrl(),
+                                        doc.getCreatedAt()),
+                                Collectors.toList()))));
     }
 
     @Override

@@ -42,8 +42,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -73,26 +75,52 @@ public class ProjectServiceImpl implements ProjectService {
         List<Project> projects = projectPage.getContent();
 
         List<Long> userIds = projects.stream()
-                .flatMap(p -> java.util.stream.Stream.of(p.getCreatorId(), p.getAssigneeId()))
-                .filter(java.util.Objects::nonNull)
+                .flatMap(p -> Stream.of(p.getCreatorId(), p.getAssigneeId()))
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-        java.util.Map<Long, String> userNameMap = fetchUserNames(userIds);
+        Map<Long, String> userNameMap = fetchUserNames(userIds);
 
         List<Long> projectIds = projects.stream().map(Project::getId).toList();
-        java.util.Map<Long, Long> memberCountMap = projectMemberRepository
+
+        Map<Long, Map<DocumentType, List<DocumentResponse>>> projectDocumentsMap =
+                documentService.getDocumentsBatch(projectIds, DocumentScope.PROJECT);
+
+        Map<Long, Long> memberCountMap = projectMemberRepository
                 .countMembersByProjectIds(projectIds, Status.ACTIVE)
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         row -> (Long) row[0],
                         row -> (Long) row[1]));
 
         List<ProjectResponse> items = projects.stream()
-                .map(p -> toResponseWithNames(
-                        p,
-                        userNameMap.getOrDefault(p.getCreatorId(), "User (ID: " + p.getCreatorId() + ")"),
-                        userNameMap.getOrDefault(p.getAssigneeId(), "User (ID: " + p.getAssigneeId() + ")"),
-                        memberCountMap.getOrDefault(p.getId(), 0L)))
+                .map(p -> {
+                    var docs = projectDocumentsMap.getOrDefault(p.getId(), Collections.emptyMap());
+                    return new ProjectResponse(
+                            String.valueOf(p.getId()),
+                            p.getProjectUUID(),
+                            p.getName(),
+                            p.getDescription(),
+                            p.getNote(),
+                            p.getStatus(),
+                            p.getBudgetToken(),
+                            p.getRewardToken(),
+                            p.getCreatorId() != null ? String.valueOf(p.getCreatorId()) : null,
+                            p.getAssigneeId() != null ? String.valueOf(p.getAssigneeId()) : null,
+                            userNameMap.getOrDefault(p.getCreatorId(), "User (ID: " + p.getCreatorId() + ")"),
+                            userNameMap.getOrDefault(p.getAssigneeId(), "User (ID: " + p.getAssigneeId() + ")"),
+                            p.getDeliverableDescription(),
+                            p.getDeliverableLink(),
+                            p.getCompletionComment(),
+                            memberCountMap.getOrDefault(p.getId(), 0L),
+                            p.getStartDate(),
+                            p.getEndDate(),
+                            docs.getOrDefault(DocumentType.CHARTER, Collections.emptyList()),
+                            docs.getOrDefault(DocumentType.DELIVERABLE, Collections.emptyList()),
+                            p.getCreatedAt(),
+                            p.getUpdatedAt()
+                    );
+                })
                 .toList();
 
         return PaginatedData.<ProjectResponse>builder()
@@ -102,8 +130,8 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
     }
 
-    private java.util.Map<Long, String> fetchUserNames(List<Long> userIds) {
-        java.util.Map<Long, String> userNameMap = new java.util.HashMap<>();
+    private Map<Long, String> fetchUserNames(List<Long> userIds) {
+        Map<Long, String> userNameMap = new HashMap<>();
         if (userIds == null || userIds.isEmpty())
             return userNameMap;
         try {

@@ -7,9 +7,11 @@ import com.intern.hub.pm.dto.project.ProjectCompleteRequest;
 import com.intern.hub.pm.dto.project.ProjectUpsertRequest;
 import com.intern.hub.pm.dto.project.ProjectFilterRequest;
 import com.intern.hub.pm.dto.project.ProjectStatisticsResponse;
+import com.intern.hub.pm.model.constant.StatusWork;
 import com.intern.hub.pm.service.ProjectService;
 import com.intern.hub.pm.feign.WalletInternalFeignClient;
 import com.intern.hub.pm.feign.model.WalletTokenRequest;
+import com.intern.hub.pm.utils.UserContext;
 import com.intern.hub.starter.security.annotation.Authenticated;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
@@ -17,6 +19,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +36,7 @@ import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -48,9 +52,9 @@ public class ProjectController {
     @Operation(summary = "Lấy danh sách dự án", description = "Trả về danh sách dự án có phân trang và lọc theo tiêu chí.")
     public ResponseApi<PaginatedData<ProjectResponse>> getProjects(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) com.intern.hub.pm.model.constant.StatusWork status,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
+            @RequestParam(required = false) StatusWork status,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         ProjectFilterRequest filter = ProjectFilterRequest.builder()
@@ -58,6 +62,7 @@ public class ProjectController {
                 .status(status)
                 .startDate(startDate)
                 .endDate(endDate)
+                .userId(UserContext.requiredUserId())
                 .build();
         return ResponseApi.ok(projectService.getProjects(filter, page, size));
     }

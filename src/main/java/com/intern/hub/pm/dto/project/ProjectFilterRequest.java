@@ -17,4 +17,5 @@ public class ProjectFilterRequest {
     StatusWork status;
     LocalDateTime startDate;
     LocalDateTime endDate;
+    Long userId;
 }
