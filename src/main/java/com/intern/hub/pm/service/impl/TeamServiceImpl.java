@@ -382,10 +382,10 @@ public class TeamServiceImpl implements TeamService {
 
         if (totalConsumption.compareTo(project.getBudgetToken()) > 0) {
             throw new ConflictDataException(
-                    "Tổng chi phí (BT+RT) của các team (" + totalConsumption +
-                            ") vượt quá ngân sách hoạt động của dự án (" + project.getBudgetToken() + ")\n" +
-                            "Bạn đang bị âm (" + totalConsumption.subtract(project.getBudgetToken()) + ")"
-            );
+                    "Vượt quá ngân sách của dự án!\n\n" +
+                            "- Tổng chi phí (BT+RT): " + totalConsumption + "\n" +
+                            "- Ngân sách dự án: " + project.getBudgetToken() + "\n" +
+                            "- Thâm hụt: " + totalConsumption.subtract(project.getBudgetToken()));
         }
     }
 
