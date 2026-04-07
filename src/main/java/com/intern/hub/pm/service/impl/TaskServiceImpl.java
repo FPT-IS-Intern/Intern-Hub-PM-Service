@@ -191,7 +191,8 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("Chỉ người được giao mới có thể dùng chức năng không làm nữa");
         }
         if (task.getStatus() != StatusWork.IN_PROGRESS && task.getStatus() != StatusWork.NEEDS_REVISION) {
-            throw new BadRequestException("Chỉ có thể dùng chức năng không làm nữa khi đang thực hiện hoặc cần sửa lại");
+            throw new BadRequestException(
+                    "Chỉ có thể dùng chức năng không làm nữa khi đang thực hiện hoặc cần sửa lại");
         }
         task.setStatus(StatusWork.QUIT);
         Task savedTask = taskRepository.save(task);
@@ -279,6 +280,10 @@ public class TaskServiceImpl implements TaskService {
         task.setRewardToken(request.rewardToken());
         task.setAssigneeId(request.assigneeId());
 
+        if (request.status() != null) {
+            task.setStatus(StatusWork.valueOf(request.status()));
+        }
+
         Task savedTask = taskRepository.save(task);
         documentService.replaceDocuments(
                 savedTask.getId(),
@@ -295,8 +300,10 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long taskId) {
         Task task = getActiveTask(taskId);
         assertTaskOwner(task);
-        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED && task.getStatus() != StatusWork.QUIT) {
-            throw new BadRequestException("Chỉ có thể thu hồi/hủy task khi chưa bắt đầu, bị từ chối hoặc người làm không làm nữa");
+        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED
+                && task.getStatus() != StatusWork.QUIT) {
+            throw new BadRequestException(
+                    "Chỉ có thể thu hồi/hủy task khi chưa bắt đầu, bị từ chối hoặc người làm không làm nữa");
         }
         task.setStatus(StatusWork.CANCELED);
         taskRepository.save(task);
@@ -382,7 +389,8 @@ public class TaskServiceImpl implements TaskService {
 
         List<TaskResponse> items = tasks.stream()
                 .map(t -> {
-                    String creatorName = userNameMap.getOrDefault(t.getCreatorId(), "User (ID: " + t.getCreatorId() + ")");
+                    String creatorName = userNameMap.getOrDefault(t.getCreatorId(),
+                            "User (ID: " + t.getCreatorId() + ")");
                     String assigneeName = t.getAssigneeId() != null
                             ? userNameMap.getOrDefault(t.getAssigneeId(), "User (ID: " + t.getAssigneeId() + ")")
                             : "Chưa có người nhận";
@@ -440,7 +448,7 @@ public class TaskServiceImpl implements TaskService {
         if (totalRt.compareTo(team.getBudgetToken()) > 0) {
             throw new BadRequestException("Tổng điểm thưởng (RT) của các task trong team (" + totalRt
                     + ") vượt quá ngân sách hoạt động của team (" + team.getBudgetToken() + ")\n" +
-            "Bạn đang bị âm (" + totalRt.subtract(team.getBudgetToken()) + ")");
+                    "Bạn đang bị âm (" + totalRt.subtract(team.getBudgetToken()) + ")");
         }
     }
 

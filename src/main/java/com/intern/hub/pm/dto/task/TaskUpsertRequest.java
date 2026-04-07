@@ -15,6 +15,7 @@ public record TaskUpsertRequest(
         @NotNull @Min(0) BigInteger rewardToken,
         @JsonSerialize(using = ToStringSerializer.class) Long assigneeId,
         @NotNull LocalDateTime startDate,
-        @NotNull LocalDateTime endDate)
+        @NotNull LocalDateTime endDate,
+        String status)
 {
 }
