@@ -438,8 +438,9 @@ public class TaskServiceImpl implements TaskService {
         BigInteger totalRt = currentSumRt.add(newRt);
 
         if (totalRt.compareTo(team.getBudgetToken()) > 0) {
-            throw new BadRequestException("Tổng thưởng (Reward) của các task trong team (" + totalRt
-                    + ") vượt quá ngân sách hoạt động của team (" + team.getBudgetToken() + ")");
+            throw new BadRequestException("Tổng điểm thưởng (RT) của các task trong team (" + totalRt
+                    + ") vượt quá ngân sách hoạt động của team (" + team.getBudgetToken() + ")\n" +
+            "Bạn đang bị âm (" + totalRt.subtract(team.getBudgetToken()) + ")");
         }
     }
 
