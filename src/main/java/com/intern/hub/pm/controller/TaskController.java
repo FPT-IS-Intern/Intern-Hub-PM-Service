@@ -1,10 +1,6 @@
 package com.intern.hub.pm.controller;
 
-import com.intern.hub.pm.dto.task.TaskFilterRequest;
-import com.intern.hub.pm.dto.task.TaskResponse;
-import com.intern.hub.pm.dto.task.TaskReviewRequest;
-import com.intern.hub.pm.dto.task.TaskSubmitRequest;
-import com.intern.hub.pm.dto.task.TaskUpsertRequest;
+import com.intern.hub.pm.dto.task.*;
 import com.intern.hub.pm.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -113,6 +109,14 @@ public class TaskController {
     public ResponseApi<TaskResponse> approveTask(
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.approveTask(taskId));
+    }
+
+    @PostMapping("/tasks/{taskId}/partial-approve")
+    @Operation(summary = "Duyệt một phần task", description = "Duyệt một phần khi task đang ở trạng thái chờ duyệt. Cập nhật RT và ghi chú, chuyển về Đang tiến hành.")
+    public ResponseApi<TaskResponse> partialApproveTask(
+            @PathVariable Long taskId,
+            @Valid @RequestBody TaskPartialApproveRequest request) {
+        return ResponseApi.ok(taskService.partialApproveTask(taskId, request));
     }
 
     @PostMapping("/tasks/{taskId}/refuse")

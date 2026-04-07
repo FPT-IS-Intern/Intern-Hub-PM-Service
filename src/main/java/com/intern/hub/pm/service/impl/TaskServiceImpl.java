@@ -3,11 +3,7 @@ package com.intern.hub.pm.service.impl;
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.InternalErrorException;
 import com.intern.hub.pm.dto.document.DocumentResponse;
-import com.intern.hub.pm.dto.task.TaskFilterRequest;
-import com.intern.hub.pm.dto.task.TaskResponse;
-import com.intern.hub.pm.dto.task.TaskReviewRequest;
-import com.intern.hub.pm.dto.task.TaskUpsertRequest;
-import com.intern.hub.pm.dto.task.TaskStatisticsResponse;
+import com.intern.hub.pm.dto.task.*;
 import com.intern.hub.pm.feign.HrmInternalFeignClient;
 import com.intern.hub.pm.feign.WalletInternalFeignClient;
 import com.intern.hub.pm.feign.model.*;
@@ -154,6 +150,12 @@ public class TaskServiceImpl implements TaskService {
         }
 
         if (task.getAssigneeId() == null) {
+            // Kiểm tra user có thuộc team không
+            boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndStatus(
+                    task.getTeam().getId(), currentUserId, Status.ACTIVE);
+            if (!isMember) {
+                throw new ForbiddenException("Bạn phải là thành viên của Team mới có thể nhận nhiệm vụ này");
+            }
             task.setAssigneeId(currentUserId);
         } else if (!currentUserId.equals(task.getAssigneeId())) {
             throw new ForbiddenException("Chỉ người được giao task mới có thể nhận task");
@@ -376,6 +378,29 @@ public class TaskServiceImpl implements TaskService {
         assertTaskOwner(task);
         task.setStatus(StatusWork.NEEDS_REVISION);
         task.setNote(trimToNull(request.reviewComment()));
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse partialApproveTask(Long taskId, TaskPartialApproveRequest request) {
+        Task task = getPendingReviewTask(taskId);
+        assertTaskOwner(task);
+
+        // Kiểm tra ngân sách khi thay đổi RT
+        validateTeamBudgetLimit(task.getTeam(), task.getId(), request.newRt());
+
+        // Cập nhật Wallet (Blockchain)
+        WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
+                .oldRt(task.getRewardToken())
+                .newRt(request.newRt())
+                .build();
+        walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
+
+        task.setRewardToken(request.newRt());
+        task.setNote(trimToNull(request.reason()));
+        task.setStatus(StatusWork.IN_PROGRESS);
+
         return toResponse(taskRepository.save(task));
     }
 

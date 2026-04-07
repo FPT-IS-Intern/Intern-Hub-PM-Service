@@ -2,6 +2,7 @@ package com.intern.hub.pm.service;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.pm.dto.task.TaskFilterRequest;
+import com.intern.hub.pm.dto.task.TaskPartialApproveRequest;
 import com.intern.hub.pm.dto.task.TaskResponse;
 import com.intern.hub.pm.dto.task.TaskReviewRequest;
 import com.intern.hub.pm.dto.task.TaskUpsertRequest;
@@ -44,4 +45,5 @@ public interface TaskService {
     PaginatedData<TaskResponse> getPendingTeamTasks(Long teamId, TaskFilterRequest filter, int page, int size);
 
     TaskResponse claimTask(Long taskId);
+    TaskResponse partialApproveTask(Long taskId, TaskPartialApproveRequest request);
 }
