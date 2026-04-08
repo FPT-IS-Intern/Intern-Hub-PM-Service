@@ -369,6 +369,16 @@ public class TeamServiceImpl implements TeamService {
                 .build();
         walletInternalFeignClient.saveTransactionModule(txRequest);
 
+        // Giải phóng token đã khóa của người tạo khi team (module) được nhận
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(savedTeam.getBudgetToken())
+                .oldRt(savedTeam.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .project(false)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(savedTeam.getCreatorId(), releaseRequest);
+
         return toResponse(savedTeam);
     }
 

@@ -410,6 +410,16 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
         walletInternalFeignClient.saveTransactionProject(txRequest);
 
+        // Giải phóng token đã khóa của người tạo khi dự án được nhận
+        WalletWorkItemRequest releaseRequest = WalletWorkItemRequest.builder()
+                .oldBt(savedProject.getBudgetToken())
+                .oldRt(savedProject.getRewardToken())
+                .newBt(BigInteger.ZERO)
+                .newRt(BigInteger.ZERO)
+                .project(true)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfWork(savedProject.getCreatorId(), releaseRequest);
+
         return toResponse(savedProject);
     }
 

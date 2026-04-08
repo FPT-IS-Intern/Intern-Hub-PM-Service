@@ -174,6 +174,13 @@ public class TaskServiceImpl implements TaskService {
                 .build();
         walletInternalFeignClient.saveTransactionTask(txRequest);
 
+        // Giải phóng token đã khóa của người tạo khi task được nhận
+        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                .oldRt(savedTask.getRewardToken())
+                .newRt(BigInteger.ZERO)
+                .build();
+        walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
+
         return toResponse(savedTask);
     }
 
