@@ -387,15 +387,17 @@ public class TaskServiceImpl implements TaskService {
         Task task = getPendingReviewTask(taskId);
         assertTaskOwner(task);
 
-        // Kiểm tra ngân sách khi thay đổi RT
         validateTeamBudgetLimit(task.getTeam(), task.getId(), request.newRt());
 
-        // Cập nhật Wallet (Blockchain)
+        if (request.newRt().compareTo(task.getRewardToken()) >= 0) {
+            throw new BadRequestException("Điểm thưởng mới phải nhỏ hơn điểm thưởng hiện tại");
+        }
+        // Cập nhật Wallet (Blockchain) cho người tạo task
         WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
                 .newRt(request.newRt())
                 .build();
-        walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
+        walletInternalFeignClient.editTaskTokens(task.getCreatorId(), editTokenRequest);
 
         task.setRewardToken(request.newRt());
         task.setNote(trimToNull(request.reason()));
@@ -481,7 +483,7 @@ public class TaskServiceImpl implements TaskService {
         if (totalRt.compareTo(team.getBudgetToken()) > 0) {
             throw new BadRequestException(
                     "Vượt quá ngân sách của team!\n\n" +
-                            "- Tổng RT của các task: " + totalRt + "\n" +
+                            "- Tổng chi phí hiện tại: " + totalRt + "\n" +
                             "- Ngân sách team: " + team.getBudgetToken() + "\n" +
                             "- Thâm hụt: " + totalRt.subtract(team.getBudgetToken()));
         }

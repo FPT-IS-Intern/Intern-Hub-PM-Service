@@ -177,7 +177,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                     StatusWork.CANCELED);
             if (leaderCount > 0) {
                 throw new BadRequestException(
-                        "Thành viên đang là trưởng nhóm của một nhóm trong dự án, không thể xóa");
+                        "Thành viên đang là Leader của một Team trong dự án, không thể xóa");
             }
 
             // Kiểm tra nếu thành viên đang tham gia vào bất kỳ nhóm (Team Member) nào trong
