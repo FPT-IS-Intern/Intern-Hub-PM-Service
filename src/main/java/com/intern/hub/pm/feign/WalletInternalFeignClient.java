@@ -45,6 +45,10 @@ public interface WalletInternalFeignClient {
     WalletApiResponse<Void> saveTransactionTask(
             @RequestBody WalletTransactionTaskRequest request);
 
+    @PostMapping("/wl/internal/transaction/task/update")
+    WalletApiResponse<Void> updateTransactionTask(
+            @RequestBody WalletTransactionTaskRequest request);
+
     @PostMapping("/wl/internal/transaction/browse")
     WalletApiResponse<Void> browseWork(
             @RequestBody WalletBrowseWorkRequest request);

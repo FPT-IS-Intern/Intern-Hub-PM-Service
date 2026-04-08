@@ -399,6 +399,16 @@ public class TaskServiceImpl implements TaskService {
                 .build();
         walletInternalFeignClient.editTaskTokens(task.getCreatorId(), editTokenRequest);
 
+        WalletTransactionTaskRequest updateTxRequest = WalletTransactionTaskRequest.builder()
+                .taskId(task.getId())
+                .taskUUId(task.getTaskUUID())
+                .moduleUUId(task.getTeam().getTeamUUID())
+                .creatorId(task.getCreatorId())
+                .assigneeId(task.getAssigneeId())
+                .rt(request.newRt())
+                .build();
+        walletInternalFeignClient.updateTransactionTask(updateTxRequest);
+
         task.setRewardToken(request.newRt());
         task.setNote(trimToNull(request.reason()));
         task.setStatus(StatusWork.IN_PROGRESS);

@@ -111,14 +111,6 @@ public class TaskController {
         return ResponseApi.ok(taskService.approveTask(taskId));
     }
 
-    @PostMapping("/tasks/{taskId}/partial-approve")
-    @Operation(summary = "Duyệt một phần task", description = "Duyệt một phần khi task đang ở trạng thái chờ duyệt. Cập nhật RT và ghi chú, chuyển về Đang tiến hành.")
-    public ResponseApi<TaskResponse> partialApproveTask(
-            @PathVariable Long taskId,
-            @Valid @RequestBody TaskPartialApproveRequest request) {
-        return ResponseApi.ok(taskService.partialApproveTask(taskId, request));
-    }
-
     @PostMapping("/tasks/{taskId}/refuse")
     @Operation(summary = "Yêu cầu làm lại task", description = "Từ chối và yêu cầu chỉnh sửa task khi task đang ở trạng thái chờ duyệt.")
     public ResponseApi<TaskResponse> refuseTask(
@@ -163,5 +155,13 @@ public class TaskController {
     public ResponseApi<TaskResponse> claimTask(
             @PathVariable Long taskId) {
         return ResponseApi.ok(taskService.claimTask(taskId));
+    }
+
+    @PostMapping("/tasks/{taskId}/partial-approve")
+    @Operation(summary = "Duyệt một phần task", description = "Duyệt một phần khi task đang ở trạng thái chờ duyệt. Cập nhật RT và ghi chú, chuyển về Đang tiến hành.")
+    public ResponseApi<TaskResponse> partialApproveTask(
+            @PathVariable Long taskId,
+            @Valid @RequestBody TaskPartialApproveRequest request) {
+        return ResponseApi.ok(taskService.partialApproveTask(taskId, request));
     }
 }
