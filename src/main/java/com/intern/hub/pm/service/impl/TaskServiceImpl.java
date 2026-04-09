@@ -178,7 +178,7 @@ public class TaskServiceImpl implements TaskService {
 
         // Giải phóng token đã khóa của người tạo khi task được nhận (chỉ khi là task
         // mới chưa lên blockchain)
-        if (previousStatus == StatusWork.NOT_STARTED) {
+        if (previousStatus == StatusWork.NOT_STARTED || previousStatus == StatusWork.REJECTED) {
             WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
                     .oldRt(savedTask.getRewardToken())
                     .newRt(BigInteger.ZERO)
@@ -271,7 +271,7 @@ public class TaskServiceImpl implements TaskService {
 
         // Giải phóng token đã khóa của người tạo khi task được nhận (chỉ khi là task
         // mới chưa lên blockchain)
-        if (previousStatus == StatusWork.NOT_STARTED) {
+        if (previousStatus == StatusWork.NOT_STARTED || previousStatus == StatusWork.REJECTED) {
             WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
                     .oldRt(savedTask.getRewardToken())
                     .newRt(BigInteger.ZERO)
@@ -307,7 +307,7 @@ public class TaskServiceImpl implements TaskService {
         WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
                 .newRt(request.rewardToken())
-                .locked(task.getStatus() == StatusWork.NOT_STARTED)
+                .locked(task.getStatus() == StatusWork.NOT_STARTED || task.getStatus() == StatusWork.REJECTED)
                 .build();
         walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
 
@@ -345,14 +345,14 @@ public class TaskServiceImpl implements TaskService {
         Task savedTask = taskRepository.save(task);
         // Gọi sang Wallet để giải phóng token đã khóa cho Task (chỉ khi chưa lên
         // blockchain)
-        if (previousStatus == StatusWork.NOT_STARTED) {
+        if (previousStatus == StatusWork.NOT_STARTED || previousStatus == StatusWork.REJECTED) {
             WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
                     .oldRt(task.getRewardToken())
                     .newRt(BigInteger.ZERO)
                     .locked(true)
                     .build();
             walletInternalFeignClient.recalculateTokensOfTask(task.getCreatorId(), releaseRequest);
-        } else if (previousStatus == StatusWork.REJECTED || previousStatus == StatusWork.QUIT) {
+        } else if (previousStatus == StatusWork.QUIT) {
             // Hoàn tiền trên Blockchain cho Creator
             WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
                     .taskId(savedTask.getId())
