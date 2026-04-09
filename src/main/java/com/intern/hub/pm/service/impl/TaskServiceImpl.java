@@ -178,6 +178,7 @@ public class TaskServiceImpl implements TaskService {
         WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
                 .oldRt(savedTask.getRewardToken())
                 .newRt(BigInteger.ZERO)
+                .locked(true)
                 .build();
         walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
 
@@ -289,6 +290,7 @@ public class TaskServiceImpl implements TaskService {
         WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
                 .newRt(request.rewardToken())
+                .locked(task.getStatus() == StatusWork.NOT_STARTED)
                 .build();
         walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
 
@@ -300,7 +302,6 @@ public class TaskServiceImpl implements TaskService {
         if (request.status() != null) {
             task.setStatus(StatusWork.valueOf(request.status()));
         }
-
         Task savedTask = taskRepository.save(task);
         documentService.replaceDocuments(
                 savedTask.getId(),
@@ -328,6 +329,7 @@ public class TaskServiceImpl implements TaskService {
         WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
                 .newRt(BigInteger.ZERO)
+                .locked(true)
                 .build();
         walletInternalFeignClient.recalculateTokensOfTask(task.getCreatorId(), releaseRequest);
 
@@ -403,6 +405,7 @@ public class TaskServiceImpl implements TaskService {
         WalletEditTaskRequest editTokenRequest = WalletEditTaskRequest.builder()
                 .oldRt(task.getRewardToken())
                 .newRt(request.newRt())
+                .locked(false)
                 .build();
         walletInternalFeignClient.editTaskTokens(task.getCreatorId(), editTokenRequest);
 

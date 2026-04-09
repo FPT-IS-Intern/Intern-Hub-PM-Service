@@ -14,4 +14,5 @@ import java.math.BigInteger;
 public class WalletEditTaskRequest {
     private BigInteger oldRt;
     private BigInteger newRt;
+    private boolean locked;
 }

@@ -37,14 +37,14 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional(readOnly = true)
     public List<DocumentResponse> getDocuments(Long entityId, DocumentScope documentScope, DocumentType documentType) {
-        return documentRepository.findAllByEntityIdAndDocumentScopeAndDocumentType(entityId, documentScope, documentType)
+        return documentRepository
+                .findAllByEntityIdAndDocumentScopeAndDocumentType(entityId, documentScope, documentType)
                 .stream()
                 .map(document -> new DocumentResponse(
                         document.getId(),
                         document.getFileName(),
                         document.getFileUrl(),
-                        document.getCreatedAt()
-                ))
+                        document.getCreatedAt()))
                 .toList();
     }
 
@@ -75,11 +75,11 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional
     public void replaceDocuments(Long entityId,
-                                 DocumentScope documentScope,
-                                 DocumentType documentType,
-                                 Long actorId,
-                                 String destinationPath,
-                                 List<MultipartFile> files) {
+            DocumentScope documentScope,
+            DocumentType documentType,
+            Long actorId,
+            String destinationPath,
+            List<MultipartFile> files) {
         List<Document> existingDocuments = documentRepository.findAllByEntityIdAndDocumentScopeAndDocumentType(
                 entityId, documentScope, documentType);
 
@@ -99,7 +99,8 @@ public class DocumentServiceImpl implements DocumentService {
 
         long totalUploadSize = files.stream().mapToLong(MultipartFile::getSize).sum();
         if (totalUploadSize > maxTotalSize) {
-            throw new BadRequestException("Tổng dung lượng file vượt quá giới hạn " + (maxTotalSize / 1024 / 1024) + "MB");
+            throw new BadRequestException(
+                    "Tổng dung lượng file vượt quá giới hạn " + (maxTotalSize / 1024 / 1024) + "MB");
         }
 
         for (MultipartFile file : files) {
@@ -111,8 +112,7 @@ public class DocumentServiceImpl implements DocumentService {
                     destinationPath,
                     actorId,
                     maxTotalSize,
-                    allowTypesDocument
-            );
+                    allowTypesDocument);
             storageObjectLifecycleManager.cleanupOnRollback(s3Key, actorId);
 
             documentRepository.save(Document.builder()
