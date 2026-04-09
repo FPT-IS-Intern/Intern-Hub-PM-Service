@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -161,6 +162,7 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("Chỉ người được giao task mới có thể nhận task");
         }
 
+        StatusWork previousStatus = task.getStatus();
         task.setStatus(StatusWork.IN_PROGRESS);
         Task savedTask = taskRepository.save(task);
 
@@ -174,13 +176,16 @@ public class TaskServiceImpl implements TaskService {
                 .build();
         walletInternalFeignClient.saveTransactionTask(txRequest);
 
-        // Giải phóng token đã khóa của người tạo khi task được nhận
-        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
-                .oldRt(savedTask.getRewardToken())
-                .newRt(BigInteger.ZERO)
-                .locked(true)
-                .build();
-        walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
+        // Giải phóng token đã khóa của người tạo khi task được nhận (chỉ khi là task
+        // mới chưa lên blockchain)
+        if (previousStatus == StatusWork.NOT_STARTED) {
+            WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                    .oldRt(savedTask.getRewardToken())
+                    .newRt(BigInteger.ZERO)
+                    .locked(true)
+                    .build();
+            walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
+        }
 
         return toResponse(savedTask);
     }
@@ -259,9 +264,21 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("Bạn phải là thành viên của Team mới có thể nhận nhiệm vụ này");
         }
 
+        StatusWork previousStatus = task.getStatus();
         task.setAssigneeId(currentUserId);
         task.setStatus(StatusWork.IN_PROGRESS);
         Task savedTask = taskRepository.save(task);
+
+        // Giải phóng token đã khóa của người tạo khi task được nhận (chỉ khi là task
+        // mới chưa lên blockchain)
+        if (previousStatus == StatusWork.NOT_STARTED) {
+            WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                    .oldRt(savedTask.getRewardToken())
+                    .newRt(BigInteger.ZERO)
+                    .locked(true)
+                    .build();
+            walletInternalFeignClient.recalculateTokensOfTask(savedTask.getCreatorId(), releaseRequest);
+        }
 
         // Lưu giao dịch vào Wallet
         WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
@@ -323,16 +340,31 @@ public class TaskServiceImpl implements TaskService {
             throw new BadRequestException(
                     "Chỉ có thể thu hồi/hủy task khi chưa bắt đầu, bị từ chối hoặc người làm không làm nữa");
         }
+        StatusWork previousStatus = task.getStatus();
         task.setStatus(StatusWork.CANCELED);
-        taskRepository.save(task);
-        // Gọi sang Wallet để giải phóng token đã khóa cho Task
-        WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
-                .oldRt(task.getRewardToken())
-                .newRt(BigInteger.ZERO)
-                .locked(true)
-                .build();
-        walletInternalFeignClient.recalculateTokensOfTask(task.getCreatorId(), releaseRequest);
-
+        Task savedTask = taskRepository.save(task);
+        // Gọi sang Wallet để giải phóng token đã khóa cho Task (chỉ khi chưa lên
+        // blockchain)
+        if (previousStatus == StatusWork.NOT_STARTED) {
+            WalletEditTaskRequest releaseRequest = WalletEditTaskRequest.builder()
+                    .oldRt(task.getRewardToken())
+                    .newRt(BigInteger.ZERO)
+                    .locked(true)
+                    .build();
+            walletInternalFeignClient.recalculateTokensOfTask(task.getCreatorId(), releaseRequest);
+        } else if (previousStatus == StatusWork.REJECTED || previousStatus == StatusWork.QUIT) {
+            // Hoàn tiền trên Blockchain cho Creator
+            WalletTransactionTaskRequest txRequest = WalletTransactionTaskRequest.builder()
+                    .taskId(savedTask.getId())
+                    .taskUUId(savedTask.getTaskUUID())
+                    .moduleUUId(savedTask.getTeam().getTeamUUID())
+                    .creatorId(savedTask.getCreatorId())
+                    .assigneeId(
+                            savedTask.getAssigneeId() != null ? savedTask.getAssigneeId() : savedTask.getCreatorId())
+                    .rt(BigInteger.ZERO)
+                    .build();
+            walletInternalFeignClient.saveTransactionTask(txRequest);
+        }
     }
 
     @Override
