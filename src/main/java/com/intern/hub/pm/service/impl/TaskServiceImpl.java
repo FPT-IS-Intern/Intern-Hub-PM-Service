@@ -316,10 +316,30 @@ public class TaskServiceImpl implements TaskService {
         task.setRewardToken(request.rewardToken());
         task.setAssigneeId(request.assigneeId());
 
+        StatusWork previousStatus = task.getStatus();
         if (request.status() != null) {
-            task.setStatus(StatusWork.valueOf(request.status()));
+            StatusWork newStatus = StatusWork.valueOf(request.status());
+
+            if ((previousStatus == StatusWork.IN_PROGRESS || previousStatus == StatusWork.NEEDS_REVISION)
+                    && newStatus == StatusWork.NOT_STARTED) {
+            } else {// giữ
+                task.setStatus(newStatus);
+            }
         }
         Task savedTask = taskRepository.save(task);
+
+        // Nếu task đang thực hiện, cập nhật số RT mới lên Blockchain ngay lập tức
+        if (previousStatus == StatusWork.IN_PROGRESS || previousStatus == StatusWork.NEEDS_REVISION) {
+            WalletTransactionTaskRequest updateTxRequest = WalletTransactionTaskRequest.builder()
+                    .taskId(savedTask.getId())
+                    .taskUUId(savedTask.getTaskUUID())
+                    .moduleUUId(savedTask.getTeam().getTeamUUID())
+                    .creatorId(savedTask.getCreatorId())
+                    .assigneeId(savedTask.getAssigneeId())
+                    .rt(savedTask.getRewardToken())
+                    .build();
+            walletInternalFeignClient.updateTransactionTask(updateTxRequest);
+        }
         documentService.replaceDocuments(
                 savedTask.getId(),
                 DocumentScope.TASK,
