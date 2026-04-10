@@ -311,6 +311,14 @@ public class TaskServiceImpl implements TaskService {
                 .build();
         walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
 
+        // Kiểm tra: nếu task đang có người làm thì không thể cập nhật lại người dùng
+        // trống (làm task treo)
+        if (task.getAssigneeId() != null && request.assigneeId() == null) {
+            if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED) {
+                throw new BadRequestException("Nhiệm vụ đang trong quá trình xử lý, không thể để trống người nhận");
+            }
+        }
+
         task.setName(request.name().trim());
         task.setDescription(request.description().trim());
         task.setRewardToken(request.rewardToken());
