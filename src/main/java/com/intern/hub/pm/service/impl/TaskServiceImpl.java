@@ -312,18 +312,18 @@ public class TaskServiceImpl implements TaskService {
         walletInternalFeignClient.editTaskTokens(UserContext.requiredUserId(), editTokenRequest);
 
         // Kiểm tra: nếu task đang có người làm thì không thể cập nhật lại người dùng
-        // trống (làm task treo)
-        if (task.getAssigneeId() != null && request.assigneeId() == null) {
-            if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED) {
+        if (task.getStatus() != StatusWork.NOT_STARTED && task.getStatus() != StatusWork.REJECTED) {
+            // Không cho phép gỡ bỏ người nhận (làm task treo)
+            if (task.getAssigneeId() != null && request.assigneeId() == null) {
                 throw new BadRequestException("Nhiệm vụ đang trong quá trình xử lý, không thể để trống người nhận");
             }
-        }
 
-        // Kiểm tra nếu đổi người nhận thì người nhận mới phải có ví
-        if (request.assigneeId() != null && !request.assigneeId().equals(task.getAssigneeId())) {
-            var walletRes = walletInternalFeignClient.getWalletStatus(request.assigneeId());
-            if (walletRes == null || walletRes.getData() == null || !walletRes.getData().isHasWallet()) {
-                throw new BadRequestException("Người nhận task chưa có ví, không thể nhận task");
+            // Nếu thay đổi người nhận thì người nhận mới phải có ví
+            if (request.assigneeId() != null && !request.assigneeId().equals(task.getAssigneeId())) {
+                var walletRes = walletInternalFeignClient.getWalletStatus(request.assigneeId());
+                if (walletRes == null || walletRes.getData() == null || !walletRes.getData().isHasWallet()) {
+                    throw new BadRequestException("Người nhận task chưa có ví, không thể nhận task");
+                }
             }
         }
 
