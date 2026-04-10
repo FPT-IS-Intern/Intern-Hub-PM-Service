@@ -319,6 +319,14 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
+        // Kiểm tra nếu đổi người nhận thì người nhận mới phải có ví
+        if (request.assigneeId() != null && !request.assigneeId().equals(task.getAssigneeId())) {
+            var walletRes = walletInternalFeignClient.getWalletStatus(request.assigneeId());
+            if (walletRes == null || walletRes.getData() == null || !walletRes.getData().isHasWallet()) {
+                throw new BadRequestException("Người nhận task chưa có ví, không thể nhận task");
+            }
+        }
+
         task.setName(request.name().trim());
         task.setDescription(request.description().trim());
         task.setRewardToken(request.rewardToken());
