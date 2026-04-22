@@ -4,10 +4,10 @@ spring:
   jmx:
     enabled: false
   datasource:
-    url:  jdbc:postgresql://100.92.147.62:5432/ih_pm
-    username: ih_pm
-    password: 123qwe!@#4
-    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ih_pm}}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driverClassName: org.postgresql.Driver
     hikari:
       minimum-idle: 1
       maximum-pool-size: 2
@@ -23,7 +23,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: ih_pm
+        default_schema: ${SCHEMA_NAME:ih_pm}
 server:
   port: 9000
   tomcat:
